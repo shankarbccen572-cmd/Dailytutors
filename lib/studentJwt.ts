@@ -1,0 +1,117 @@
+const SECRET = process.env.NEXTAUTH_SECRET
+if (!SECRET) {
+  throw new Error('Missing NEXTAUTH_SECRET environment variable')
+}
+
+export const STUDENT_TOKEN_NAME = 'auth_token'
+export const STUDENT_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 // 7 days
+
+function utf8ToBytes(value: string) {
+  return new TextEncoder().encode(value)
+}
+
+function bytesToUtf8(bytes: Uint8Array) {
+  return new TextDecoder().decode(bytes)
+}
+
+function base64UrlEncode(data: string | Uint8Array) {
+  const bytes = typeof data === 'string' ? utf8ToBytes(data) : data
+  let base64 = ''
+  if (typeof btoa !== 'undefined') {
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += 1) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    base64 = btoa(binary)
+  } else {
+    base64 = Buffer.from(bytes).toString('base64')
+  }
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function base64UrlDecode(value: string) {
+  const padded = value.padEnd(value.length + ((4 - (value.length % 4)) % 4), '=')
+  const base64 = padded.replace(/-/g, '+').replace(/_/g, '/')
+  if (typeof atob !== 'undefined') {
+    return atob(base64)
+  }
+  return Buffer.from(base64, 'base64').toString('utf8')
+}
+
+function getSubtle() {
+  const globalCrypto =
+    typeof crypto !== 'undefined'
+      ? crypto
+      : typeof globalThis !== 'undefined'
+      ? (globalThis as any).crypto || (globalThis as any).webcrypto
+      : undefined
+
+  if (globalCrypto?.subtle) {
+    return globalCrypto.subtle
+  }
+
+  throw new Error('Web Crypto API is required for JWT signing')
+}
+
+async function sign(value: string) {
+  const subtle = getSubtle()
+  const key = await subtle.importKey(
+    'raw',
+    utf8ToBytes(SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const signature = await subtle.sign('HMAC', key, utf8ToBytes(value))
+  return base64UrlEncode(new Uint8Array(signature))
+}
+
+export async function createStudentToken(payload: Record<string, unknown>, expiresInSeconds = STUDENT_TOKEN_MAX_AGE) {
+  const issuedAt = Math.floor(Date.now() / 1000)
+  const fullPayload = {
+    ...payload,
+    iat: issuedAt,
+    exp: issuedAt + expiresInSeconds,
+  }
+
+  const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+  const body = base64UrlEncode(JSON.stringify(fullPayload))
+  const signature = await sign(`${header}.${body}`)
+  return `${header}.${body}.${signature}`
+}
+
+export async function verifyStudentToken(token: string) {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return { valid: false, reason: 'invalid_format' }
+
+    const [header, body, signature] = parts
+    const expectedSignature = await sign(`${header}.${body}`)
+    const signatureBuf = typeof Buffer !== 'undefined' ? Buffer.from(signature) : new TextEncoder().encode(signature)
+    const expectedBuf = typeof Buffer !== 'undefined' ? Buffer.from(expectedSignature) : new TextEncoder().encode(expectedSignature)
+    if (signatureBuf.length !== expectedBuf.length) {
+      return { valid: false, reason: 'invalid_signature' }
+    }
+    let result = 0
+    for (let i = 0; i < signatureBuf.length; i += 1) {
+      result |= signatureBuf[i] ^ expectedBuf[i]
+    }
+    if (result !== 0) {
+      return { valid: false, reason: 'invalid_signature' }
+    }
+
+    const payloadJson = base64UrlDecode(body)
+    const payload = JSON.parse(payloadJson)
+    if (typeof payload !== 'object' || payload === null) {
+      return { valid: false, reason: 'invalid_payload' }
+    }
+
+    if (typeof payload.exp !== 'number' || Math.floor(Date.now() / 1000) >= payload.exp) {
+      return { valid: false, reason: 'expired' }
+    }
+
+    return { valid: true as const, payload }
+  } catch (error) {
+    return { valid: false, reason: 'exception' }
+  }
+}
