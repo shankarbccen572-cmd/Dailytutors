@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import SiteSetting from '@/models/SiteSetting'
 import { getAdminSession } from '@/lib/admin'
+import { SITE_DEFAULTS, mergeSiteSettings } from '@/lib/siteDefaults'
+
+const str = (v, fallback = '') => (typeof v === 'string' ? v : fallback)
+const arr = (v) => (Array.isArray(v) ? v : [])
 
 export async function GET() {
   const session = await getAdminSession()
@@ -10,43 +14,11 @@ export async function GET() {
   await dbConnect()
   let settings = await SiteSetting.findOne().lean()
   if (!settings) {
-    settings = await SiteSetting.create({
-      navbarLinks: [
-        { label: 'Courses', href: '/courses' },
-        { label: 'Learn', href: '/learn' },
-        { label: 'Login', href: '/login' },
-      ],
-      heroBanners: [
-        {
-          title: 'Shape Your Future with the Daily Tutors',
-          subtitle:
-            'One platform for every goal — from Class 8 to 12 boards to NEET, JEE, CET, UPSC and more.',
-          imageUrl: '',
-          bgColor: '#D92F2F',
-          textColor: '#FFFFFF',
-          ctaText: 'Start Learning',
-          ctaHref: '/login',
-          position: 1,
-        },
-      ],
-      heroStats: [
-        { value: '10k+', label: 'Active learners' },
-        { value: '200+', label: 'Video lessons' },
-        { value: '95%', label: 'Success mindset' },
-      ],
-      featureLabels: [
-        'Expert Faculty with Real Experience',
-        'Live & Recorded Classes',
-        'Daily Practice Tests',
-        'Personalized Mentorship',
-        'Performance Tracking',
-        'Doubt Clearing Sessions',
-        'Study Materials & Notes',
-      ],
-    })
+    settings = await SiteSetting.create(SITE_DEFAULTS)
+    settings = settings.toObject()
   }
 
-  return NextResponse.json(settings)
+  return NextResponse.json(mergeSiteSettings(settings))
 }
 
 export async function PUT(req) {
@@ -57,22 +29,59 @@ export async function PUT(req) {
   const body = await req.json()
 
   const update = {
-    navbarLinks: Array.isArray(body.navbarLinks) ? body.navbarLinks : [],
-    heroBanners: Array.isArray(body.heroBanners)
-      ? body.heroBanners.map((item, index) => ({
-          title: item.title || '',
-          subtitle: item.subtitle || '',
-          imageUrl: item.imageUrl || '',
-          bgColor: item.bgColor || '#D92F2F',
-          textColor: item.textColor || '#FFFFFF',
-          ctaText: item.ctaText || 'Start Learning',
-          ctaHref: item.ctaHref || '/login',
-          position: Number.isFinite(item.position) ? item.position : index + 1,
-        }))
-      : [],
-    heroStats: Array.isArray(body.heroStats) ? body.heroStats : [],
-    featureLabels: Array.isArray(body.featureLabels) ? body.featureLabels : [],
-    footerText: body.footerText || '',
+    navbarLinks: arr(body.navbarLinks).map((l) => ({ label: str(l.label), href: str(l.href) })),
+
+    heroBanners: arr(body.heroBanners).map((item, index) => ({
+      title: str(item.title),
+      subtitle: str(item.subtitle),
+      imageUrl: str(item.imageUrl),
+      bgColor: str(item.bgColor, '#D92F2F'),
+      textColor: str(item.textColor, '#FFFFFF'),
+      ctaText: str(item.ctaText, 'Start Learning'),
+      ctaHref: str(item.ctaHref, '/login'),
+      position: Number.isFinite(item.position) ? item.position : index + 1,
+    })),
+
+    heroStats: arr(body.heroStats).map((s) => ({ value: str(s.value), label: str(s.label) })),
+
+    highlights: arr(body.highlights).map((h) => ({
+      icon: str(h.icon, 'Sparkles'),
+      title: str(h.title),
+      sub: str(h.sub),
+    })),
+
+    examBadge: str(body.examBadge),
+    examHeading: str(body.examHeading),
+    examSubheading: str(body.examSubheading),
+    examCategories: arr(body.examCategories).map((c) => ({
+      icon: str(c.icon, 'Sparkles'),
+      title: str(c.title),
+      tags: arr(c.tags).map((t) => str(t)).filter(Boolean),
+      href: str(c.href, '/courses'),
+    })),
+
+    whyBadge: str(body.whyBadge),
+    whyHeading: str(body.whyHeading),
+    whySubheading: str(body.whySubheading),
+    featureLabels: arr(body.featureLabels).map((f) => str(f)),
+
+    ctaHeading: str(body.ctaHeading),
+    ctaSubtitle: str(body.ctaSubtitle),
+    ctaPrimaryLabel: str(body.ctaPrimaryLabel),
+    ctaSecondaryLabel: str(body.ctaSecondaryLabel),
+    ctaSecondaryHref: str(body.ctaSecondaryHref, '/courses'),
+
+    coursesBadge: str(body.coursesBadge),
+    coursesTitle: str(body.coursesTitle),
+    coursesSubtitle: str(body.coursesSubtitle),
+
+    footerAbout: str(body.footerAbout),
+    footerColumns: arr(body.footerColumns).map((col) => ({
+      title: str(col.title),
+      links: arr(col.links).map((l) => ({ label: str(l.label), href: str(l.href) })),
+    })),
+    socialLinks: arr(body.socialLinks).map((s) => ({ type: str(s.type, 'mail'), href: str(s.href) })),
+    footerText: str(body.footerText),
   }
 
   const settings = await SiteSetting.findOneAndUpdate({}, update, {
@@ -80,5 +89,5 @@ export async function PUT(req) {
     upsert: true,
   }).lean()
 
-  return NextResponse.json(settings)
+  return NextResponse.json(mergeSiteSettings(settings))
 }

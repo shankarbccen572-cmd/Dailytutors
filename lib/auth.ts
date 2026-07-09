@@ -4,7 +4,6 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import { verifyPassword } from '@/lib/password'
-import { verifyOtp, toMsg91Mobile, isValidIndianMobile } from '@/lib/msg91'
 
 // Emails listed here (comma-separated in the env var) are granted the "admin"
 // role the first time they sign in. Everyone else defaults to "student".
@@ -53,49 +52,10 @@ export const authOptions: AuthOptions = {
         } as any
       },
     }),
-    // MSG91 phone OTP login for students.
-    CredentialsProvider({
-      id: 'phone-otp',
-      name: 'Phone OTP',
-      credentials: {
-        phone: { label: 'Phone', type: 'text' },
-        otp: { label: 'OTP', type: 'text' },
-      },
-      async authorize(credentials: any) {
-        if (!credentials?.phone || !credentials?.otp) return null
-
-        // "919071366466" — country code + number, digits only.
-        const normalizedPhone = toMsg91Mobile(credentials.phone)
-        if (!isValidIndianMobile(normalizedPhone)) return null
-
-        // Verify the OTP against MSG91 (source of truth). Only a valid code lets
-        // the login proceed — this replaces the old Firebase ID-token check.
-        const result = await verifyOtp(normalizedPhone, credentials.otp)
-        if (!result.ok) return null
-
-        await dbConnect()
-        const safeEmail = `${normalizedPhone}@phone.dailytutors.local`
-        let user = await User.findOne({ phone: normalizedPhone })
-        if (!user) {
-          user = await User.create({
-            phone: normalizedPhone,
-            email: safeEmail,
-            name: normalizedPhone,
-            role: 'student',
-          })
-        } else if (!user.email) {
-          user.email = safeEmail
-          await user.save()
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name || normalizedPhone,
-          role: user.role,
-        } as any
-      },
-    }),
+    // Student phone-OTP login is handled outside NextAuth by the MSG91 OTP
+    // Widget flow: the browser verifies the OTP, POSTs the widget access-token
+    // to /api/otp/verify, and that route issues the student `auth_token` cookie
+    // (see lib/session.ts). No credentials provider is needed here.
   ],
 
   // Store the session as a JWT in an httpOnly cookie (no DB session table).
@@ -116,9 +76,8 @@ export const authOptions: AuthOptions = {
   callbacks: {
     // Create the user record in MongoDB on first Google sign-in.
     async signIn({ user, account }: any) {
-      // Credential-based logins are validated in their authorize() already:
-      // "credentials" = staff password login, "phone-otp" = MSG91 OTP login.
-      if (account?.provider === 'credentials' || account?.provider === 'phone-otp') return true
+      // Staff password logins are validated in their authorize() already.
+      if (account?.provider === 'credentials') return true
       if (account?.provider !== 'google') return false
       await dbConnect()
 

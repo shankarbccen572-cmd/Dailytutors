@@ -6,11 +6,16 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   color: #1a1a1a;
   background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 img {
@@ -26,4 +31,55 @@ h4,
 h5,
 h6 {
   font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Brand-tinted text selection */
+::selection {
+  background-color: rgba(255, 49, 49, 0.16);
+  color: #1a1a1a;
+}
+
+/* Consistent, accessible focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #ff3131;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Slim brand scrollbar (desktop) */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #e0d7d5 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: #e0d7d5;
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #c9bdba;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

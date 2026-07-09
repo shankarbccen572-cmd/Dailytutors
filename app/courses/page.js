@@ -1,10 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from 'next/link'
 import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
+import SiteSetting from '@/models/SiteSetting'
 import { serialize } from '@/lib/utils'
-import SignInCta from '@/components/SignInCta'
 import CourseCard from '@/components/CourseCard'
+import SiteNavbar from '@/components/SiteNavbar'
+import SiteFooter from '@/components/SiteFooter'
+import { SITE_DEFAULTS, mergeSiteSettings } from '@/lib/siteDefaults'
+import { BookOpen, Sparkles } from 'lucide-react'
 
 // Cache for 60s instead of querying MongoDB on every visit (much faster).
 // Newly published/updated courses appear within a minute.
@@ -21,10 +24,12 @@ export const metadata = {
 
 export default async function CoursesCatalog() {
   await dbConnect()
-  const courseDocs = await Course.find({ status: 'published' })
-    .sort({ createdAt: -1 })
-    .lean()
+  const [courseDocs, settingDoc] = await Promise.all([
+    Course.find({ status: 'published' }).sort({ createdAt: -1 }).lean(),
+    SiteSetting.findOne().lean(),
+  ])
   const courses = serialize(courseDocs)
+  const s = mergeSiteSettings(settingDoc ? serialize(settingDoc) : SITE_DEFAULTS)
 
   const courseSchema = {
     '@context': 'https://schema.org',
@@ -39,42 +44,40 @@ export default async function CoursesCatalog() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-surface">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
-      />
-      {/* Navbar */}
-      <header className="sticky top-0 z-20 border-b border-brand-border bg-brand-primary/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
-          <Link href="/">
-            <img src="/logo-full.png" alt="Daily Tutors" style={{ width: '200px', height: 'auto' }} />
-          </Link>
-          <SignInCta
-            label="Sign in"
-            authedLabel="Dashboard"
-            className="rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent transition-transform hover:-translate-y-0.5"
-          />
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-brand-surface">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }} />
+
+      <SiteNavbar links={s.navbarLinks} />
 
       {/* Header */}
-      <section className="bg-hero-glow">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-          <h1 className="font-heading text-3xl font-bold text-brand-textPrimary sm:text-4xl">
-            Explore Courses
+      <section className="relative overflow-hidden border-b border-brand-border bg-hero-mesh">
+        <div className="pointer-events-none absolute -right-24 -top-20 h-64 w-64 rounded-full bg-brand-accentLight/60 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 sm:py-20">
+          {s.coursesBadge ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-white/70 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-brand-accentDark backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5" />
+              {s.coursesBadge}
+            </span>
+          ) : null}
+          <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight text-brand-textPrimary sm:text-5xl">
+            {s.coursesTitle}
           </h1>
-          <p className="mt-2 text-brand-textSecondary">
-            {courses.length} course{courses.length === 1 ? '' : 's'} crafted to help
-            you learn smarter, every day.
+          <p className="mt-3 max-w-xl text-base text-brand-textSecondary sm:text-lg">
+            {courses.length} course{courses.length === 1 ? '' : 's'} — {s.coursesSubtitle}
           </p>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         {courses.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-brand-border bg-white p-12 text-center text-brand-textSecondary">
-            No courses published yet. Check back soon.
+          <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-brand-border bg-white p-16 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-accentLight text-brand-accent">
+              <BookOpen className="h-7 w-7" />
+            </span>
+            <p className="text-lg font-semibold text-brand-textPrimary">No courses published yet</p>
+            <p className="max-w-sm text-sm text-brand-textSecondary">
+              New courses are on the way — check back soon or sign in to get notified.
+            </p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -84,6 +87,13 @@ export default async function CoursesCatalog() {
           </div>
         )}
       </div>
+
+      <SiteFooter
+        about={s.footerAbout}
+        columns={s.footerColumns}
+        socials={s.socialLinks}
+        footerText={s.footerText}
+      />
     </div>
   )
 }
