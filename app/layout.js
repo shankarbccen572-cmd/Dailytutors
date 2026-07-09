@@ -22,37 +22,43 @@ const poppins = Poppins({
 export const metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Daily Tutors | Smart Learning for Boards, NEET, JEE, UPSC & More',
+    default: 'Daily Tutors - Online Coaching for 9th/10th, PUC, NEET, CET & JEE',
     template: '%s | Daily Tutors',
   },
   description:
-    'Daily Tutors offers expert-led online coaching for Class 8–12, NEET, JEE, CET, UPSC, CA and more with live classes, recorded lessons, tests and mentorship.',
+    'Daily Tutors provides expert-led online coaching for Class 9/10, PUC, NEET, CET, JEE with live classes, recorded lessons, mock tests and mentorship.',
   keywords: [
     'Daily Tutors',
     'online coaching',
     'NEET coaching',
     'JEE coaching',
-    'UPSC coaching',
-    'CA coaching',
+    'CET coaching',
+    '9th class coaching',
+    '10th class coaching',
+    'PUC coaching',
     'board exam preparation',
     'live classes',
-    'online classes India',
   ],
   applicationName: 'Daily Tutors',
   authors: [{ name: 'Daily Tutors' }],
   creator: 'Daily Tutors',
   publisher: 'Daily Tutors',
+  category: 'Education',
+  classification: 'Online learning platform',
   alternates: {
     canonical: '/',
+    languages: {
+      'en-US': '/',
+    },
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: siteUrl,
     siteName: 'Daily Tutors',
-    title: 'Daily Tutors | Smart Learning for Boards, NEET, JEE, UPSC & More',
+    title: 'Daily Tutors - Online Coaching for 9th/10th, PUC, NEET, CET & JEE',
     description:
-      'Expert-guided online learning for students preparing for boards, entrance exams and competitive exams in India.',
+      'Expert-guided online learning for students preparing for boards, NEET, JEE, CET and PUC.',
     images: [
       {
         url: '/logo-full.png',
@@ -64,9 +70,9 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Daily Tutors | Smart Learning for Boards, NEET, JEE, UPSC & More',
+    title: 'Daily Tutors - Online Coaching for 9th/10th, PUC, NEET, CET & JEE',
     description:
-      'Expert-guided online learning for students preparing for boards, entrance exams and competitive exams in India.',
+      'Expert-guided online learning for students preparing for boards, NEET, JEE, CET and PUC.',
     images: ['/logo-full.png'],
   },
   robots: {
@@ -82,13 +88,23 @@ export const metadata = {
   },
   manifest: '/manifest.json',
   icons: {
-    icon: '/logo-icon.png',
-    shortcut: '/logo-icon.png',
-    apple: '/logo-icon.png',
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
   other: {
     'theme-color': '#f4f7ff',
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
   },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#f4f7ff',
 }
 
 export default function RootLayout({ children }) {

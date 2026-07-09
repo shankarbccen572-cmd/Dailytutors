@@ -1,21 +1,21 @@
 {
   "name": "Daily Tutors",
   "short_name": "Daily Tutors",
-  "description": "Daily Tutors offers expert-led online coaching for boards, NEET, JEE, CET, UPSC, CA and more.",
+  "description": "Daily Tutors offers expert-led online coaching for boards, NEET, JEE, CET and PUC.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f4f7ff",
   "icons": [
     {
-      "src": "/logo-icon.png",
+      "src": "/favicon.svg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml"
     },
     {
-      "src": "/logo-icon.png",
+      "src": "/favicon.svg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
   ]
 }

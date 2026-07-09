@@ -89,7 +89,7 @@ export default function ProfileForm({ initialData }) {
           className={inputCls}
           value={form.examTarget}
           onChange={(e) => update('examTarget', e.target.value)}
-          placeholder="e.g. UPSC CSE 2027"
+          placeholder="e.g. NEET 2027 or JEE Main 2027"
         />
       </div>
 

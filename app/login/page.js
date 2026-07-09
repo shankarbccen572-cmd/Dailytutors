@@ -160,8 +160,8 @@ export default function LoginPage() {
             Shape your future with Daily Tutors.
           </h2>
           <p className="mt-4 max-w-md text-base text-white/85">
-            Sign in to continue your preparation — boards, NEET, JEE, CET, UPSC
-            and more, all in one place.
+            Sign in to continue your preparation — boards, NEET, JEE, CET and PUC
+            all in one place.
           </p>
 
           <ul className="mt-8 space-y-4">

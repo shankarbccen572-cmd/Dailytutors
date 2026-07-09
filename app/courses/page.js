@@ -16,7 +16,7 @@ export const revalidate = 60
 export const metadata = {
   title: 'Explore Courses',
   description:
-    'Browse published online courses for Class 8–12, NEET, JEE, CET, UPSC and CA with structured lessons, tests and expert guidance.',
+    'Browse published online courses for Class 8–12, NEET, JEE, CET and PUC with structured lessons, tests and expert guidance.',
   alternates: {
     canonical: '/courses',
   },

@@ -132,7 +132,7 @@ export default function CourseForm({ mode = 'create', initialData = null, course
               className={inputCls}
               value={form.title}
               onChange={(e) => update('title', e.target.value)}
-              placeholder="e.g. Complete UPSC Prelims Foundation"
+              placeholder="e.g. Complete NEET Foundation Course"
             />
           </Field>
           <Field label="Description">

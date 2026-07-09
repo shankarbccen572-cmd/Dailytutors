@@ -5,7 +5,7 @@
 export const CATEGORY_GROUPS = [
   {
     group: 'Competitive Exams',
-    items: ['UPSC', 'KAS', 'IAS', 'CA', 'NEET', 'CET'],
+    items: ['NEET', 'CET'],
   },
   {
     group: 'School',
@@ -19,17 +19,6 @@ export const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap((g) => g.items)
 // Exam targets shown for each category (the "Exam target" dropdown cascades
 // off the selected Category).
 export const TARGETS_BY_CATEGORY: Record<string, string[]> = {
-  UPSC: [
-    'UPSC CSE – Prelims',
-    'UPSC CSE – Mains',
-    'UPSC CSE – Full Course',
-    'CDS',
-    'NDA',
-    'CAPF',
-  ],
-  KAS: ['KAS – Prelims', 'KAS – Mains', 'KAS – Full Course', 'Gazetted Probationers'],
-  IAS: ['Prelims', 'Mains', 'Interview', 'Full Course'],
-  CA: ['CA Foundation', 'CA Intermediate', 'CA Final'],
   NEET: ['NEET UG', 'NEET PG'],
   CET: ['KCET', 'COMEDK', 'State CET'],
   'Class 8': ['CBSE', 'ICSE', 'State Board'],
