@@ -25,7 +25,7 @@ const WIDGET_SCRIPTS = [
 function getCallbackUrl() {
   if (typeof window === 'undefined') return '/dashboard'
   const cb = new URLSearchParams(window.location.search).get('callbackUrl')
-  return cb && cb.startsWith('/') ? cb : '/dashboard'
+  return cb && cb.startsWith('/') && !cb.startsWith('//') ? cb : '/dashboard'
 }
 
 const HIGHLIGHTS = [
@@ -94,7 +94,7 @@ export default function LoginPage() {
       const res = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: accessToken }),
+        body: JSON.stringify({ token: accessToken, callbackUrl: getCallbackUrl() }),
       })
       const data = await res.json()
       if (res.ok && data.ok) {

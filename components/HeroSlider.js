@@ -21,6 +21,13 @@ export default function HeroSlider({ banners = [] }) {
 
   const go = (i) => setActiveIndex((i + banners.length) % banners.length)
 
+  const activeBanner = banners[activeIndex] || banners[0]
+  const bannerSizeClass = {
+    small: 'h-[150px] w-full sm:h-[260px] lg:h-[300px]',
+    medium: 'h-[150px] w-full sm:h-[300px] lg:h-[360px]',
+    large: 'h-[150px] w-full sm:h-[340px] lg:h-[400px]',
+  }[activeBanner.size || 'medium']
+
   return (
     <section
       className="relative w-full overflow-hidden"
@@ -28,8 +35,8 @@ export default function HeroSlider({ banners = [] }) {
       onMouseLeave={() => setPaused(false)}
       aria-roledescription="carousel"
     >
-      {/* Height scales gently from phone → desktop. Content is never cropped. */}
-      <div className="relative h-[240px] w-full xs:h-[280px] sm:h-[360px] lg:h-[460px]">
+      {/* Fixed banner height for desktop, smaller on mobile. */}
+      <div className={`relative overflow-hidden ${bannerSizeClass}`}>
         {banners.map((banner, index) => {
           const isActive = index === activeIndex
           const hasImage = Boolean(banner.imageUrl)
@@ -44,13 +51,6 @@ export default function HeroSlider({ banners = [] }) {
             >
               {hasImage ? (
                 <>
-                  {/* Blurred fill so the full (contained) image never sits on flat bars */}
-                  <img
-                    src={banner.imageUrl}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
-                  />
                   {/* The actual banner — always fully visible, never cropped */}
                   <img
                     src={banner.imageUrl}

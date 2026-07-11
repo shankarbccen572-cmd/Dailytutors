@@ -226,7 +226,16 @@ export default function SiteSettingsPage() {
                 {uploading && <p className="mt-2 text-xs text-brand-textSecondary">Uploading…</p>}
                 {uploadError && <p className="mt-2 text-xs text-brand-warning">{uploadError}</p>}
                 {banner.imageUrl ? (
-                  <img src={banner.imageUrl} alt={`Banner ${index + 1}`} className="mt-3 h-24 w-full rounded-xl object-contain" style={{ backgroundColor: banner.bgColor }} />
+                  <div className="mt-3 space-y-2">
+                    <img src={banner.imageUrl} alt={`Banner ${index + 1}`} className="h-24 w-full rounded-xl object-contain" style={{ backgroundColor: banner.bgColor }} />
+                    <button
+                      type="button"
+                      onClick={() => updateBanner(index, 'imageUrl', '')}
+                      className="inline-flex items-center rounded-xl border border-brand-border px-3 py-2 text-xs font-semibold text-brand-textSecondary transition hover:bg-brand-accentLight"
+                    >
+                      Remove image
+                    </button>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -234,8 +243,17 @@ export default function SiteSettingsPage() {
               <Field label="CTA text" value={banner.ctaText} onChange={(v) => updateBanner(index, 'ctaText', v)} />
               <Field label="CTA href" value={banner.ctaHref} onChange={(v) => updateBanner(index, 'ctaHref', v)} />
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4">
               <Field label="Position" type="number" value={banner.position ?? index + 1} onChange={(v) => updateBanner(index, 'position', v)} />
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-brand-textSecondary">Size</label>
+                <select value={banner.size || 'medium'} onChange={(e) => updateBanner(index, 'size', e.target.value)} className={inputCls}>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+                <p className="mt-1 text-xs text-brand-textSecondary">Controls banner height.</p>
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-brand-textSecondary">Background</label>
                 <input type="color" value={banner.bgColor} onChange={(e) => updateBanner(index, 'bgColor', e.target.value)} className="h-10 w-full rounded-xl border border-brand-border bg-white px-3 py-1" />

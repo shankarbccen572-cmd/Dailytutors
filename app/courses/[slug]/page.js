@@ -303,6 +303,8 @@ export default async function CourseDetail({ params }) {
               <EnrollButton
                 courseId={course._id}
                 enrolled={enrolled}
+                price={price}
+                courseTitle={course.title}
                 className="mt-4 block w-full rounded-xl bg-accent-gradient px-5 py-3 text-center font-semibold text-white shadow-accent transition-transform hover:-translate-y-0.5 disabled:opacity-50"
               />
 

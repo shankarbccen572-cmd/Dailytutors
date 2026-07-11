@@ -39,9 +39,9 @@ export async function PUT(req) {
       textColor: str(item.textColor, '#FFFFFF'),
       ctaText: str(item.ctaText, 'Start Learning'),
       ctaHref: str(item.ctaHref, '/login'),
+      size: str(item.size, 'medium'),
       position: Number.isFinite(item.position) ? item.position : index + 1,
     })),
-
     heroStats: arr(body.heroStats).map((s) => ({ value: str(s.value), label: str(s.label) })),
 
     highlights: arr(body.highlights).map((h) => ({

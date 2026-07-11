@@ -4,6 +4,11 @@ import User from '@/models/User'
 import { verifyAccessToken, toLocalIndianPhone } from '@/lib/msg91'
 import { createStudentToken, STUDENT_TOKEN_NAME, STUDENT_TOKEN_MAX_AGE } from '@/lib/studentJwt'
 
+function getSafeRedirectUrl(value) {
+  if (typeof value !== 'string') return '/dashboard'
+  return value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
+}
+
 // POST /api/otp/verify  { token: '<widget access-token>' }
 //
 // The MSG91 OTP Widget has already collected and verified the OTP in the
@@ -21,7 +26,7 @@ export async function POST(req) {
       }
     }
 
-    const { token } = body
+    const { token, callbackUrl } = body
     if (!token) {
       return NextResponse.json({ ok: false, message: 'Verification token required.' }, { status: 400 })
     }
@@ -57,7 +62,8 @@ export async function POST(req) {
     const tokenPayload = { userId: user._id.toString(), email: user.email, role: user.role }
     const jwt = await createStudentToken(tokenPayload, STUDENT_TOKEN_MAX_AGE)
 
-    const res = NextResponse.json({ ok: true, redirect: '/dashboard' })
+    const redirectUrl = getSafeRedirectUrl(callbackUrl)
+    const res = NextResponse.json({ ok: true, redirect: redirectUrl })
     res.cookies.set({
       name: STUDENT_TOKEN_NAME,
       value: jwt,

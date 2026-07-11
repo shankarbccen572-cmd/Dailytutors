@@ -35,6 +35,11 @@ function isStudentRoute(pathname) {
   )
 }
 
+function getSafeCallbackUrl(url) {
+  const candidate = `${url.pathname}${url.search}`
+  return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : '/dashboard'
+}
+
 // Protects /dashboard, /courses, /learn and related student routes. Unauthenticated
 // visitors are redirected to /login, while admin routes use /admin/login.
 export default async function middleware(req) {
@@ -87,10 +92,11 @@ export default async function middleware(req) {
       return response
     }
 
+    const callbackUrl = getSafeCallbackUrl(req.nextUrl)
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
-    url.searchParams.set('callbackUrl', pathname)
+    url.searchParams.set('callbackUrl', callbackUrl)
     return NextResponse.redirect(url)
   }
 

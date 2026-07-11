@@ -2,11 +2,17 @@
 
 import { signIn } from 'next-auth/react'
 
+function getCallbackUrl() {
+  if (typeof window === 'undefined') return '/dashboard'
+  const cb = new URLSearchParams(window.location.search).get('callbackUrl')
+  return cb && cb.startsWith('/') && !cb.startsWith('//') ? cb : '/dashboard'
+}
+
 export default function GoogleSignInButton() {
   return (
     <button
       type="button"
-      onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+      onClick={() => signIn('google', { callbackUrl: getCallbackUrl() })}
       className="inline-flex items-center gap-3 rounded-lg border border-brand-border bg-brand-primary px-6 py-3 font-medium text-brand-textPrimary shadow-sm transition-colors hover:bg-brand-accentLight"
     >
       <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">

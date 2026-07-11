@@ -25,6 +25,7 @@ const HeroBannerSchema = new mongoose.Schema(
     textColor: { type: String, default: '#FFFFFF' },
     ctaText: { type: String, default: 'Start Learning' },
     ctaHref: { type: String, default: '/login' },
+    size: { type: String, default: 'medium' },
     position: { type: Number, default: 0 },
   },
   { _id: false }
