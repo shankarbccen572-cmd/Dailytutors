@@ -47,7 +47,7 @@ export default async function CoursesCatalog() {
     itemListElement: courses.map((course, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      url: `https://dailytutors.in/courses/${course.slug}`,
+      url: `https://www.dailytutors.in/courses/${course.slug}`,
       name: course.title,
     })),
   }

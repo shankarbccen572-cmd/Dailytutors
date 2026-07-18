@@ -50,7 +50,7 @@ export async function generateMetadata({ params }) {
       title: courseDoc.title,
       description,
       type: 'article',
-      url: `https://dailytutors.in/courses/${courseDoc.slug}`,
+      url: `https://www.dailytutors.in/courses/${courseDoc.slug}`,
       images: [courseDoc.thumbnail ? courseDoc.thumbnail : '/logo-full.png'],
     },
     twitter: {
@@ -107,11 +107,11 @@ export default async function CourseDetail({ params }) {
     provider: {
       '@type': 'EducationalOrganization',
       name: 'Daily Tutors',
-      sameAs: 'https://dailytutors.in',
+      sameAs: 'https://www.dailytutors.in',
     },
     educationalLevel: 'Intermediate',
     teaches: [course.examTarget || 'Exam preparation', course.category || 'Online learning'].filter(Boolean),
-    url: `https://dailytutors.in/courses/${course.slug}`,
+    url: `https://www.dailytutors.in/courses/${course.slug}`,
   }
 
   return (

@@ -2,7 +2,7 @@ import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dailytutors.in'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.dailytutors.in'
 
 // Body / UI text
 const inter = Inter({

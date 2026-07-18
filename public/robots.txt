@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dailytutors.in/sitemap.xml
+Sitemap: https://www.dailytutors.in/sitemap.xml

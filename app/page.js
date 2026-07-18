@@ -27,8 +27,8 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
     name: 'Daily Tutors',
-    url: 'https://dailytutors.in',
-    logo: 'https://dailytutors.in/logo-full.png',
+    url: 'https://www.dailytutors.in',
+    logo: 'https://www.dailytutors.in/logo-full.png',
     description: s.heroBanners?.[0]?.subtitle || SITE_DEFAULTS.heroBanners[0].subtitle,
     sameAs: (s.socialLinks || []).map((x) => x.href).filter((h) => h && h.startsWith('http')),
   }

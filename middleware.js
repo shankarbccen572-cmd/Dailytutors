@@ -7,14 +7,14 @@ import {
   STUDENT_TOKEN_MAX_AGE,
 } from '@/lib/studentJwt'
 
+const CANONICAL_HOST = 'www.dailytutors.in'
+
 // Dev flag: when auth is disabled, let every request through untouched.
 const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true'
 
 const STUDENT_ROUTES = [
   '/dashboard',
   '/dashboard/',
-  '/courses',
-  '/courses/',
   '/learn',
   '/learn/',
   '/my-courses',
@@ -48,6 +48,13 @@ export default async function middleware(req) {
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', pathname)
   const pass = NextResponse.next({ request: { headers: requestHeaders } })
+
+  const host = req.headers.get('host')?.split(':')[0] || req.nextUrl.hostname
+  if (host === 'dailytutors.in') {
+    const url = req.nextUrl.clone()
+    url.hostname = CANONICAL_HOST
+    return NextResponse.redirect(url, 308)
+  }
 
   if (AUTH_DISABLED) return pass
   if (pathname === '/admin/login') return pass
@@ -104,22 +111,5 @@ export default async function middleware(req) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard',
-    '/dashboard/:path*',
-    '/admin',
-    '/admin/:path*',
-    '/courses',
-    '/courses/:path*',
-    '/learn/:path*',
-    '/my-courses',
-    '/my-courses/:path*',
-    '/cart',
-    '/cart/:path*',
-    '/checkout',
-    '/checkout/:path*',
-    '/certificates',
-    '/certificates/:path*',
-    '/watch-course/:path*',
-  ],
+  matcher: ['/((?!_next/static|_next/image|_next/data|favicon.ico).*)'],
 }
