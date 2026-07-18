@@ -1028,20 +1028,16 @@ export default function QuestionBankManager({
         ) : (
           <div className="space-y-4">
             <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    href="/admin/question-bank/upload"
-                    className={`rounded-full px-4 py-2 text-sm font-semibold ${mode === 'upload' ? 'bg-accent-gradient text-white' : 'bg-brand-border text-brand-textPrimary'}`}
-                  >
-                    Upload questions
-                  </Link>
-                  <Link
-                    href="/admin/question-bank/generate"
-                    className={`rounded-full px-4 py-2 text-sm font-semibold ${mode === 'generate' ? 'bg-accent-gradient text-white' : 'bg-brand-border text-brand-textPrimary'}`}
-                  >
-                    Generate question paper
-                  </Link>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
+                    {mode === 'generate' ? 'Selecting questions from' : 'Currently viewing'}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-brand-textPrimary">
+                    {selectedSubject?.name ? `${selectedSubject.name} · ` : ''}
+                    {selectedChapter.title}
+                    {selectedTopic ? ` · ${selectedTopic.title}` : ''}
+                  </p>
                 </div>
                 <div className="rounded-full bg-brand-accentLight px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-accentDark">
                   {mode === 'upload'

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getAdminSession } from '@/lib/admin'
 import PapersManager from '@/components/admin/PapersManager'
+import QuestionBankTabs from '@/components/admin/QuestionBankTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,7 @@ export default async function SavedPapersPage() {
           Download (PDF / Word, with or without answer key), publish, duplicate or delete your papers.
         </p>
       </div>
+      <QuestionBankTabs />
       <PapersManager />
     </div>
   )
