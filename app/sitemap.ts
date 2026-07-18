@@ -8,15 +8,21 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.dailytutors.in
 // sitemap without needing a redeploy.
 export const revalidate = 3600
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date()
+// Emit lastmod as a plain W3C date (YYYY-MM-DD). This is the most widely
+// accepted format — some validators dislike the millisecond-precision ISO
+// timestamp Next.js produces from a Date object.
+function ymd(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
 
-  // Public, always-present routes. /login is intentionally excluded (no SEO
-  // value and it is a bare auth page.
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const today = ymd(new Date())
+
+  // Public, always-present routes. /login and /brand-preview are intentionally
+  // excluded (no SEO value — auth page and internal design preview).
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
-    { url: `${BASE_URL}/courses`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${BASE_URL}/brand-preview`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/`, lastModified: today, changeFrequency: 'weekly', priority: 1.0 },
+    { url: `${BASE_URL}/courses`, lastModified: today, changeFrequency: 'weekly', priority: 0.9 },
   ]
 
   let courseRoutes: MetadataRoute.Sitemap = []
@@ -31,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .filter((c: any) => c.slug)
         .map((c: any) => ({
           url: `${BASE_URL}/courses/${c.slug}`,
-          lastModified: c.updatedAt ? new Date(c.updatedAt) : now,
+          lastModified: c.updatedAt ? ymd(new Date(c.updatedAt)) : today,
           changeFrequency: 'weekly' as const,
           priority: 0.8,
         }))
