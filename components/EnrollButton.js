@@ -85,7 +85,7 @@ export default function EnrollButton({ courseId, enrolled, className = '', price
         order_id: orderData.order_id,
         name: 'Daily Tutors',
         description: `Purchase ${courseTitle || 'this course'}`,
-        image: '/logo-full.png',
+        image: `${window.location.origin}/logo-full.png`,
         handler: async function (response) {
           try {
             const verifyRes = await fetch('/api/verify-payment', {
@@ -150,7 +150,7 @@ export default function EnrollButton({ courseId, enrolled, className = '', price
       </button>
       {isPaid && !busy ? (
         <p className="mt-2 text-sm text-brand-textSecondary">
-          If Razorpay opens a UPI QR, scan it with your UPI app. To pay by card, choose the "Cards" tab in the checkout modal.
+          If Razorpay opens a UPI QR, scan it with your UPI app. To pay by card, choose the &quot;Cards&quot; tab in the checkout modal.
         </p>
       ) : null}
       {statusMessage ? (

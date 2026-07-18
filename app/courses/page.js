@@ -1,13 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
+import Category from '@/models/Category'
 import SiteSetting from '@/models/SiteSetting'
 import { serialize } from '@/lib/utils'
-import CourseCard from '@/components/CourseCard'
+import CourseCatalog from '@/components/CourseCatalog'
 import SiteNavbar from '@/components/SiteNavbar'
 import SiteFooter from '@/components/SiteFooter'
 import { SITE_DEFAULTS, mergeSiteSettings } from '@/lib/siteDefaults'
-import { BookOpen, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 // Cache for 60s instead of querying MongoDB on every visit (much faster).
 // Newly published/updated courses appear within a minute.
@@ -23,13 +24,21 @@ export const metadata = {
 }
 
 export default async function CoursesCatalog() {
-  await dbConnect()
-  const [courseDocs, settingDoc] = await Promise.all([
-    Course.find({ status: 'published' }).sort({ createdAt: -1 }).lean(),
-    SiteSetting.findOne().lean(),
-  ])
-  const courses = serialize(courseDocs)
-  const s = mergeSiteSettings(settingDoc ? serialize(settingDoc) : SITE_DEFAULTS)
+  let courses = []
+  let categories = []
+  let s = mergeSiteSettings(SITE_DEFAULTS)
+
+  if (process.env.MONGODB_URI) {
+    await dbConnect()
+    const [courseDocs, categoryDocs, settingDoc] = await Promise.all([
+      Course.find({ status: 'published' }).sort({ createdAt: -1 }).lean(),
+      Category.find({ active: true }).sort({ order: 1, name: 1 }).lean(),
+      SiteSetting.findOne().lean(),
+    ])
+    courses = serialize(courseDocs)
+    categories = serialize(categoryDocs)
+    s = mergeSiteSettings(settingDoc ? serialize(settingDoc) : SITE_DEFAULTS)
+  }
 
   const courseSchema = {
     '@context': 'https://schema.org',
@@ -69,23 +78,7 @@ export default async function CoursesCatalog() {
       </section>
 
       <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
-        {courses.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-brand-border bg-white p-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-accentLight text-brand-accent">
-              <BookOpen className="h-7 w-7" />
-            </span>
-            <p className="text-lg font-semibold text-brand-textPrimary">No courses published yet</p>
-            <p className="max-w-sm text-sm text-brand-textSecondary">
-              New courses are on the way — check back soon or sign in to get notified.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((c) => (
-              <CourseCard key={c._id} course={c} />
-            ))}
-          </div>
-        )}
+        <CourseCatalog courses={courses} categories={categories} />
       </div>
 
       <SiteFooter

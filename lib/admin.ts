@@ -6,6 +6,15 @@ import { verifyAdminToken, ADMIN_TOKEN_NAME } from '@/lib/adminJwt'
 const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true'
 
 // Roles allowed into the admin panel (course + quiz content management).
+//
+// NOTE (known RBAC gap — deliberately NOT changed here): `co-admin` is excluded,
+// so a co-admin can authenticate (app/api/admin/login allows them + issues a
+// token) yet is rejected by getAdminSession() everywhere. Simply adding
+// 'co-admin' here would grant them EVERY staff route (Question Bank,
+// site-settings, uploads…), most of which have no per-permission guard — a
+// security broadening, not a fix. The correct fix is a dedicated pass that adds
+// permission-aware guards to each staff route, then admits co-admin. Tracked as
+// a Phase-2 hardening item.
 const STAFF_ROLES = ['admin', 'faculty']
 
 // Normalizes an admin JWT payload into a session-like object.

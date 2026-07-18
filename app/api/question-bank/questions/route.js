@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import BankQuestion from '@/models/BankQuestion'
+import BankSubject from '@/models/BankSubject'
 import { getAdminSession } from '@/lib/admin'
 import { serialize } from '@/lib/utils'
 import { normalizeBankQuestion, pickBankFilter } from '@/lib/bankQuestion'
@@ -33,6 +34,11 @@ export async function POST(req) {
   const body = await req.json()
   const { data, error } = normalizeBankQuestion(body)
   if (error) return NextResponse.json({ error }, { status: 400 })
+
+  // Denormalize categoryId from the subject so it is always correct, regardless
+  // of what the client sent.
+  const subject = await BankSubject.findById(data.subjectId).select('categoryId').lean()
+  data.categoryId = subject?.categoryId || data.categoryId || null
 
   const created = await BankQuestion.create({
     ...data,

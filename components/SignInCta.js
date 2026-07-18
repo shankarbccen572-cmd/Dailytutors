@@ -20,6 +20,10 @@ export default function SignInCta({
   className = '',
   withIcon = false,
 }) {
+  // Hooks must run unconditionally and in the same order on every render, so
+  // useSession() is called before any early return.
+  const { status } = useSession()
+
   // Dev mode: skip Google login, go straight into the app.
   if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
     return (
@@ -28,8 +32,6 @@ export default function SignInCta({
       </Link>
     )
   }
-
-  const { status } = useSession()
 
   if (status === 'authenticated') {
     return (

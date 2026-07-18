@@ -1,6 +1,9 @@
-const SECRET = process.env.ADMIN_JWT_SECRET || process.env.NEXTAUTH_SECRET
-if (!SECRET) {
-  throw new Error('Missing ADMIN_JWT_SECRET or NEXTAUTH_SECRET environment variable')
+function getSecret() {
+  const secret = process.env.ADMIN_JWT_SECRET || process.env.NEXTAUTH_SECRET
+  if (!secret) {
+    throw new Error('Missing ADMIN_JWT_SECRET or NEXTAUTH_SECRET environment variable')
+  }
+  return secret
 }
 
 export const ADMIN_TOKEN_NAME = 'admin_token'
@@ -55,9 +58,10 @@ function getSubtle() {
 
 async function sign(payload: string) {
   const subtle = getSubtle()
+  const secret = getSecret()
   const key = await subtle.importKey(
     'raw',
-    utf8ToBytes(SECRET),
+    utf8ToBytes(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']

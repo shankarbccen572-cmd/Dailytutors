@@ -11,6 +11,10 @@ import SiteSetting from '@/models/SiteSetting'
 import { serialize } from '@/lib/utils'
 
 async function getSettings() {
+  if (!process.env.MONGODB_URI) {
+    return mergeSiteSettings(SITE_DEFAULTS)
+  }
+
   await dbConnect()
   const setting = await SiteSetting.findOne().lean()
   return mergeSiteSettings(setting ? serialize(setting) : SITE_DEFAULTS)

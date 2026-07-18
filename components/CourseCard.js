@@ -57,6 +57,12 @@ export default function CourseCard({ course: c }) {
             </span>
           )}
         </div>
+        {c.category && (
+          <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-brand-accentLight px-2.5 py-1 text-xs font-semibold text-brand-accentDark">
+            <Tag className="h-3 w-3" />
+            {c.category}
+          </span>
+        )}
 
         {/* Meta rows */}
         <div className="mt-3 space-y-1.5 text-sm text-brand-textSecondary">

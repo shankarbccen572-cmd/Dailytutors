@@ -74,9 +74,11 @@ export function normalizeBankQuestion(body: any = {}) {
   }
 
   const data: any = {
+    categoryId: body.categoryId || null,
     subjectId: body.subjectId,
     chapterId: body.chapterId,
     topicId: body.topicId || null,
+    language: (body.language || '').toString().trim(),
     exams: Array.isArray(body.exams)
       ? body.exams.map((e: any) => e.toString().trim()).filter(Boolean)
       : [],
@@ -106,7 +108,7 @@ export function normalizeBankQuestion(body: any = {}) {
     tags: Array.isArray(body.tags)
       ? body.tags.map((t: any) => t.toString().trim()).filter(Boolean)
       : [],
-    status: ['draft', 'review', 'published'].includes(body.status)
+    status: ['draft', 'review', 'published', 'archived'].includes(body.status)
       ? body.status
       : 'draft',
   }
@@ -204,9 +206,19 @@ function validateHasCorrect(options: { isCorrect: boolean }[]) {
   return ''
 }
 
-// Whitelist for filter query params used by the selection engine / listing.
+function escapeRegex(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Whitelist + build the MongoDB filter for the bank browser / advanced search /
+// selection engine. Supports: category, subject, chapter, topic, type,
+// difficulty, source, accessTier, status, exam, marks, and a keyword search `q`
+// (matched against question text, tags and examName). Archived questions are
+// excluded by default unless a specific status is requested or
+// includeArchived is truthy.
 export function pickBankFilter(query: Record<string, any> = {}) {
   const out: any = {}
+  if (query.categoryId) out.categoryId = query.categoryId
   if (query.subjectId) out.subjectId = query.subjectId
   if (query.chapterId) out.chapterId = query.chapterId
   if (query.topicId) out.topicId = query.topicId
@@ -214,7 +226,20 @@ export function pickBankFilter(query: Record<string, any> = {}) {
   if (query.difficulty) out.difficulty = query.difficulty
   if (query.source) out.source = query.source
   if (query.accessTier) out.accessTier = query.accessTier
-  if (query.status) out.status = query.status
   if (query.exam) out.exams = query.exam
+  if (query.language) out.language = query.language
+  if (Number(query.marks) > 0) out.marks = Number(query.marks)
+
+  if (query.status) {
+    out.status = query.status
+  } else if (String(query.includeArchived) !== 'true') {
+    out.status = { $ne: 'archived' }
+  }
+
+  const term = (query.q || '').toString().trim()
+  if (term) {
+    const rx = new RegExp(escapeRegex(term), 'i')
+    out.$or = [{ text: rx }, { tags: rx }, { examName: rx }, { assertion: rx }]
+  }
   return out
 }

@@ -1,14 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
-import {
-  CATEGORY_GROUPS,
-  ALL_CATEGORIES,
-  TARGETS_BY_CATEGORY,
-  LANGUAGES,
-} from '@/lib/options'
+import { TARGETS_BY_CATEGORY, LANGUAGES } from '@/lib/options'
 
 const inputCls =
   'w-full rounded-lg border border-brand-border px-3 py-2 text-sm outline-none focus:border-brand-accent'
@@ -32,9 +27,11 @@ function withCurrent(list, current) {
 export default function CourseForm({ mode = 'create', initialData = null, courseId = null }) {
   const router = useRouter()
 
+  const [categories, setCategories] = useState([])
   const [form, setForm] = useState({
     title: initialData?.title || '',
     description: initialData?.description || '',
+    categoryId: initialData?.categoryId || '',
     category: initialData?.category || '',
     examTarget: initialData?.examTarget || '',
     language: initialData?.language || 'English',
@@ -64,13 +61,30 @@ export default function CourseForm({ mode = 'create', initialData = null, course
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
+  // Load the authoritative category list from the DB once.
+  useEffect(() => {
+    let alive = true
+    fetch('/api/categories')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (alive && Array.isArray(data)) setCategories(data)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
   // Changing the category re-scopes the exam-target options; drop a target
-  // that no longer belongs to the newly selected category.
-  function updateCategory(v) {
+  // that no longer belongs to the newly selected category. Stores both the
+  // categoryId (submitted) and the resolved name (drives the cascade).
+  function updateCategory(categoryId) {
     setForm((f) => {
-      const valid = TARGETS_BY_CATEGORY[v] || []
+      const cat = categories.find((c) => c._id === categoryId)
+      const name = cat?.name || ''
+      const valid = TARGETS_BY_CATEGORY[name] || []
       const examTarget = valid.includes(f.examTarget) ? f.examTarget : ''
-      return { ...f, category: v, examTarget }
+      return { ...f, categoryId, category: name, examTarget }
     })
   }
 
@@ -81,6 +95,10 @@ export default function CourseForm({ mode = 'create', initialData = null, course
     setSavedMsg('')
     if (!form.title.trim()) {
       setError('Title is required')
+      return
+    }
+    if (!form.categoryId) {
+      setError('Category is required')
       return
     }
     setSaving(true)
@@ -144,29 +162,45 @@ export default function CourseForm({ mode = 'create', initialData = null, course
             />
           </Field>
           <div className="grid gap-5 sm:grid-cols-3">
-            <Field label="Category">
+            <Field label="Category *">
               <select
                 className={inputCls}
-                value={form.category}
+                value={form.categoryId}
                 onChange={(e) => updateCategory(e.target.value)}
+                required
               >
                 <option value="">Select category…</option>
-                {/* Preserve a legacy/custom value from an older course. */}
-                {form.category && !ALL_CATEGORIES.includes(form.category) && (
-                  <optgroup label="Current">
-                    <option value={form.category}>{form.category}</option>
-                  </optgroup>
-                )}
-                {CATEGORY_GROUPS.map((g) => (
-                  <optgroup key={g.group} label={g.group}>
-                    {g.items.map((it) => (
-                      <option key={it} value={it}>
-                        {it}
+                <optgroup label="School">
+                  {categories
+                    .filter((c) => c.kind === 'school')
+                    .map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name}
                       </option>
                     ))}
-                  </optgroup>
-                ))}
+                </optgroup>
+                <optgroup label="Competitive Exams">
+                  {categories
+                    .filter((c) => c.kind === 'exam')
+                    .map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
+              {categories.length === 0 && (
+                <p className="mt-1 text-xs text-brand-accent">
+                  No categories found. Run the category seed/migration script.
+                </p>
+              )}
+              {/* Legacy courses may carry a category name but no linked record
+                  yet — surface it so the admin knows to re-pick one. */}
+              {!form.categoryId && form.category && (
+                <p className="mt-1 text-xs text-brand-textSecondary">
+                  Current (unlinked): {form.category} — please select a category.
+                </p>
+              )}
             </Field>
             <Field label="Exam target">
               <select

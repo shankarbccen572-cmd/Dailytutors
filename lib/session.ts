@@ -11,6 +11,7 @@ const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true'
 // real userId work). While auth is on hold for development, it find-or-creates
 // a stable local dev user so the dashboard has something to work with.
 export async function getCurrentUser() {
+  if (!process.env.MONGODB_URI) return null
   await dbConnect()
 
   if (AUTH_DISABLED) {

@@ -31,10 +31,13 @@ export async function POST(req) {
       return NextResponse.json({ error: 'You already have access to this course.' }, { status: 409 })
     }
 
-    const existingPayment = await Payment.findOne({ userId: user._id, courseId, status: { $in: ['created', 'authorized', 'captured'] } }).lean()
-    if (existingPayment) {
-      return NextResponse.json({ error: 'A payment for this course is already in progress.' }, { status: 409 })
-    }
+    // Abandoned checkouts (tab closed without cancelling) leave a stale
+    // "created"/"authorized" Payment. Cancel any such rows so the user can
+    // always start a fresh attempt instead of being blocked with a 409.
+    await Payment.updateMany(
+      { userId: user._id, courseId, status: { $in: ['created', 'authorized'] } },
+      { $set: { status: 'cancelled' } }
+    )
 
     const amountInRupees = Number(course.discountPrice > 0 ? course.discountPrice : course.originalPrice || 0)
     const amountInPaise = toRazorpayAmount(amountInRupees)

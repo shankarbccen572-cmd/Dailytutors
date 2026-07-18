@@ -7,6 +7,15 @@ import mongoose from 'mongoose'
 const BankSubjectSchema = new mongoose.Schema(
   {
     name: { type: String, required: true }, // e.g. "Physics", "Biology"
+    // Category (standard / exam) this subject belongs to. The spec's subject
+    // sets differ per category (School vs NEET vs KCET), so subjects are scoped
+    // to a category. Nullable for backward compatibility with pre-existing rows.
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null,
+      index: true,
+    },
     // Optional board + grade for school subjects (blank for pure exam subjects).
     board: { type: String, default: '' }, // e.g. "CBSE", "ICSE"
     grade: { type: String, default: '' }, // e.g. "11", "12"

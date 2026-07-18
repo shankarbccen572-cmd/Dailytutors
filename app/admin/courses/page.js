@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
+import Category from '@/models/Category'
 import { serialize } from '@/lib/utils'
 import { getAdminSession } from '@/lib/admin'
 import { redirect } from 'next/navigation'
@@ -30,25 +31,26 @@ function price(course) {
   return `₹${course.originalPrice || course.discountPrice}`
 }
 
-export default async function AdminCoursesPage() {
+export default async function AdminCoursesPage({ searchParams }) {
   const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 
   await dbConnect()
-  
+
+  // Optional category filter from the query string.
+  const activeCategoryId = searchParams?.categoryId || ''
+  const categoryQuery = activeCategoryId ? { categoryId: activeCategoryId } : {}
+
+  const categories = serialize(
+    await Category.find({ active: true }).sort({ order: 1, name: 1 }).lean()
+  )
+
   // Super-admin sees all courses; co-admin sees courses only if they have 'courses' permission
-  let courses = []
-  if (session.user.role === 'co-admin') {
-    if (!session.user.permissions.includes('courses')) {
-      // Co-admin doesn't have courses permission, show empty
-      courses = []
-    } else {
-      courses = serialize(await Course.find().sort({ createdAt: -1 }).lean())
-    }
-  } else {
-    // Super-admin sees all courses
-    courses = serialize(await Course.find().sort({ createdAt: -1 }).lean())
-  }
+  const canSeeCourses =
+    session.user.role !== 'co-admin' || session.user.permissions.includes('courses')
+  const courses = canSeeCourses
+    ? serialize(await Course.find(categoryQuery).sort({ createdAt: -1 }).lean())
+    : []
 
   return (
     <div>
@@ -68,6 +70,35 @@ export default async function AdminCoursesPage() {
           <Plus className="h-4 w-4" /> New course
         </Link>
       </div>
+
+      {/* Category filter */}
+      {categories.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/courses"
+            className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              !activeCategoryId
+                ? 'border-brand-accent bg-brand-accent text-white'
+                : 'border-brand-border text-brand-textSecondary hover:bg-brand-accentLight'
+            }`}
+          >
+            All
+          </Link>
+          {categories.map((cat) => (
+            <Link
+              key={cat._id}
+              href={`/admin/courses?categoryId=${cat._id}`}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                activeCategoryId === cat._id
+                  ? 'border-brand-accent bg-brand-accent text-white'
+                  : 'border-brand-border text-brand-textSecondary hover:bg-brand-accentLight'
+              }`}
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {courses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-border bg-white p-12 text-center shadow-card">

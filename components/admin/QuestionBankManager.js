@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2, Library, ChevronRight, Filter } from 'lucide-react'
+import { Plus, Trash2, Library, ChevronRight, Filter, Archive, RotateCcw } from 'lucide-react'
 import { AR_OPTIONS } from '@/lib/bankQuestion'
 
 const inputCls =
@@ -193,6 +193,9 @@ function saveWordFile(html, filename) {
 // ---------------------------------------------------------------- taxonomy col
 
 function TaxonomyColumn({
+  categories,
+  selectedCategory,
+  setSelectedCategory,
   subjects,
   setSubjects,
   selectedSubject,
@@ -210,10 +213,23 @@ function TaxonomyColumn({
   const [newChapter, setNewChapter] = useState('')
   const [newTopic, setNewTopic] = useState('')
 
+  // Subjects belong to the selected category. Legacy (uncategorized) subjects
+  // only appear when no category filter is active.
+  const visibleSubjects = selectedCategory
+    ? subjects.filter((s) => (s.categoryId || '') === selectedCategory)
+    : subjects
+
   async function addSubject() {
     const name = newSubject.trim()
     if (!name) return
-    const s = await api('/api/question-bank/subjects', 'POST', { name })
+    if (!selectedCategory) {
+      alert('Pick a category first — every subject belongs to a category.')
+      return
+    }
+    const s = await api('/api/question-bank/subjects', 'POST', {
+      name,
+      categoryId: selectedCategory,
+    })
     setSubjects((p) => [...p, s])
     setNewSubject('')
     setSelectedSubject(s)
@@ -267,13 +283,42 @@ function TaxonomyColumn({
 
   return (
     <div className="space-y-4">
+      {/* Category */}
+      <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
+          Category / Standard
+        </h3>
+        <select
+          className={inputCls}
+          value={selectedCategory}
+          onChange={(e) => {
+            setSelectedCategory(e.target.value)
+            setSelectedSubject(null)
+            setSelectedChapter(null)
+            setSelectedTopic(null)
+          }}
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        {categories.length === 0 && (
+          <p className="mt-2 text-xs text-brand-accent">
+            No categories found. Run the category seed/migration script.
+          </p>
+        )}
+      </div>
+
       {/* Subjects */}
       <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
           Subjects
         </h3>
         <div className="space-y-1">
-          {subjects.map((s) => (
+          {visibleSubjects.map((s) => (
             <div
               key={s._id}
               className={rowCls(selectedSubject?._id === s._id)}
@@ -296,8 +341,10 @@ function TaxonomyColumn({
               </button>
             </div>
           ))}
-          {subjects.length === 0 && (
-            <p className="px-1 py-2 text-xs text-brand-textSecondary">No subjects yet.</p>
+          {visibleSubjects.length === 0 && (
+            <p className="px-1 py-2 text-xs text-brand-textSecondary">
+              {selectedCategory ? 'No subjects in this category yet.' : 'No subjects yet.'}
+            </p>
           )}
         </div>
         <div className="mt-3 flex gap-2">
@@ -742,6 +789,8 @@ export default function QuestionBankManager({
   initialChapterId,
   initialTopicId,
 }) {
+  const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [subjects, setSubjects] = useState(initialSubjects || [])
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [chapters, setChapters] = useState([])
@@ -751,7 +800,8 @@ export default function QuestionBankManager({
 
   const [questions, setQuestions] = useState([])
   const [total, setTotal] = useState(0)
-  const [filters, setFilters] = useState({ type: '', difficulty: '', source: '' })
+  const [filters, setFilters] = useState({ type: '', difficulty: '', source: '', marks: '' })
+  const [showArchived, setShowArchived] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [mode] = useState(initialMode)
   const [paperTitle, setPaperTitle] = useState('Question Paper')
@@ -780,10 +830,25 @@ export default function QuestionBankManager({
     if (filters.type) qs.set('type', filters.type)
     if (filters.difficulty) qs.set('difficulty', filters.difficulty)
     if (filters.source) qs.set('source', filters.source)
+    if (filters.marks) qs.set('marks', filters.marks)
+    if (showArchived) qs.set('includeArchived', 'true')
     const data = await api(`/api/question-bank/questions?${qs.toString()}`)
     setQuestions(data.questions)
     setTotal(data.total)
-  }, [selectedChapter, selectedTopic, filters])
+  }, [selectedChapter, selectedTopic, filters, showArchived])
+
+  // Load the category taxonomy once.
+  useEffect(() => {
+    let alive = true
+    api('/api/categories')
+      .then((data) => {
+        if (alive && Array.isArray(data)) setCategories(data)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(() => {
     reloadChapters()
@@ -838,10 +903,24 @@ export default function QuestionBankManager({
     setQuestions((p) => p.filter((q) => q._id !== id))
     setTotal((t) => t - 1)
   }
+  async function archiveQuestion(id) {
+    const updated = await api(`/api/question-bank/questions/${id}`, 'PATCH', { action: 'archive' })
+    // If we're not showing archived, drop it from view; otherwise update in place.
+    setQuestions((p) =>
+      showArchived ? p.map((q) => (q._id === id ? updated : q)) : p.filter((q) => q._id !== id)
+    )
+  }
+  async function restoreQuestion(id) {
+    const updated = await api(`/api/question-bank/questions/${id}`, 'PATCH', { action: 'restore' })
+    setQuestions((p) => p.map((q) => (q._id === id ? updated : q)))
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
       <TaxonomyColumn
+        categories={categories}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
         subjects={subjects}
         setSubjects={setSubjects}
         selectedSubject={selectedSubject}
@@ -935,6 +1014,19 @@ export default function QuestionBankManager({
                     <option value="">All sources</option>
                     {SOURCES.map((s) => <option key={s.val} value={s.val}>{s.label}</option>)}
                   </select>
+                  <select className={`${inputCls} w-auto`} value={filters.marks} onChange={(e) => setFilters((f) => ({ ...f, marks: e.target.value }))}>
+                    <option value="">Any marks</option>
+                    {[1, 2, 3, 4, 5].map((m) => <option key={m} value={m}>{m} mark{m === 1 ? '' : 's'}</option>)}
+                  </select>
+                  <label className="ml-auto inline-flex items-center gap-2 text-sm text-brand-textSecondary">
+                    <input
+                      type="checkbox"
+                      checked={showArchived}
+                      onChange={(e) => setShowArchived(e.target.checked)}
+                      className="h-4 w-4 rounded border-brand-border text-brand-accent"
+                    />
+                    Show archived
+                  </label>
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -956,6 +1048,11 @@ export default function QuestionBankManager({
                               Free
                             </span>
                           )}
+                          {q.status === 'archived' && (
+                            <span className="rounded-full bg-brand-warning/20 px-2 py-0.5 text-xs font-semibold text-brand-warning">
+                              Archived
+                            </span>
+                          )}
                         </div>
                         <p className="truncate text-sm text-brand-textPrimary">
                           {q.text || q.assertion || '(no text)'}
@@ -964,9 +1061,20 @@ export default function QuestionBankManager({
                           <p className="mt-1 text-xs text-brand-textSecondary">Topic: {selectedTopic.title}</p>
                         ) : null}
                       </div>
-                      <button onClick={() => deleteQuestion(q._id)} title="Delete">
-                        <Trash2 className="h-4 w-4 text-brand-textSecondary transition-colors hover:text-brand-accent" />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {q.status === 'archived' ? (
+                          <button onClick={() => restoreQuestion(q._id)} title="Restore">
+                            <RotateCcw className="h-4 w-4 text-brand-textSecondary transition-colors hover:text-brand-success" />
+                          </button>
+                        ) : (
+                          <button onClick={() => archiveQuestion(q._id)} title="Archive">
+                            <Archive className="h-4 w-4 text-brand-textSecondary transition-colors hover:text-brand-warning" />
+                          </button>
+                        )}
+                        <button onClick={() => deleteQuestion(q._id)} title="Delete">
+                          <Trash2 className="h-4 w-4 text-brand-textSecondary transition-colors hover:text-brand-accent" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {filteredQuestions.length === 0 && (

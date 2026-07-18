@@ -7,6 +7,17 @@ const CourseSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     thumbnail: { type: String, default: '' },
     previewVideo: { type: String, default: '' },
+    // Canonical category reference (mandatory for new courses; enforced at the
+    // API layer, not the schema, so legacy rows without one still load).
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null,
+      index: true,
+    },
+    // Denormalized category name — kept in sync with categoryId on save so
+    // listings and ISR pages can render/filter without a populate/join, and so
+    // legacy free-text values remain readable during migration.
     category: { type: String, default: '' },
     examTarget: { type: String, default: '' },
     language: { type: String, default: 'English' },

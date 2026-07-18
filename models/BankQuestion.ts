@@ -30,6 +30,15 @@ const MatchItemSchema = new mongoose.Schema(
 // tests. All API access is gated to staff (admin + faculty).
 const BankQuestionSchema = new mongoose.Schema(
   {
+    // Category (standard / exam) — denormalized from the subject so the bank
+    // browser, advanced search and paper generator can filter by standard
+    // without a join. Kept in sync on create/update.
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null,
+      index: true,
+    },
     // Taxonomy (independent of Courses / IQChapter).
     subjectId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -129,15 +138,21 @@ const BankQuestionSchema = new mongoose.Schema(
     leftItems: { type: [MatchItemSchema], default: [] },
     rightItems: { type: [MatchItemSchema], default: [] },
 
+    // Optional language of the question (for multi-language subjects like
+    // Kannada / Hindi papers). Blank = the subject's default / not applicable.
+    language: { type: String, default: '' },
+
     // Provenance for PYQ / attribution + free-form tags for search.
     year: { type: Number, default: null }, // e.g. 2023 (PYQ)
     examName: { type: String, default: '' }, // e.g. "JEE Main 2023 Shift 1"
     tags: { type: [String], default: [] },
 
-    // Lifecycle + authorship (faculty who owns the entry).
+    // Lifecycle + authorship (faculty who owns the entry). 'archived' hides a
+    // question from the default browser/generator without deleting it; it can
+    // be restored.
     status: {
       type: String,
-      enum: ['draft', 'review', 'published'],
+      enum: ['draft', 'review', 'published', 'archived'],
       default: 'draft',
       index: true,
     },

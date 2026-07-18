@@ -8,3 +8,8 @@ npm-debug.log*
 .env*.local
 .env
 .vercel
+.env*
+
+# Local secrets export (do NOT commit)
+DailyTutors-Credentials.pdf
+DailyTutors-Credentials.html

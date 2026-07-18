@@ -11,6 +11,7 @@ import { getCurrentUser } from '@/lib/session'
 import { serialize } from '@/lib/utils'
 import SignInCta from '@/components/SignInCta'
 import EnrollButton from '@/components/EnrollButton'
+import PreviewPlayer from '@/components/PreviewPlayer'
 import {
   ArrowLeft,
   Check,
@@ -141,11 +142,18 @@ export default async function CourseDetail({ params }) {
           >
             <ArrowLeft className="h-4 w-4" /> All courses
           </Link>
-          {course.examTarget && (
-            <span className="mt-3 block w-fit rounded-full bg-brand-accentLight px-3 py-1 text-xs font-semibold text-brand-accentDark">
-              {course.examTarget}
-            </span>
-          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {course.category && (
+              <span className="w-fit rounded-full bg-brand-accent px-3 py-1 text-xs font-semibold text-white">
+                {course.category}
+              </span>
+            )}
+            {course.examTarget && (
+              <span className="w-fit rounded-full bg-brand-accentLight px-3 py-1 text-xs font-semibold text-brand-accentDark">
+                {course.examTarget}
+              </span>
+            )}
+          </div>
           <h1 className="mt-3 font-heading text-3xl font-bold text-brand-textPrimary sm:text-4xl">
             {course.title}
           </h1>
@@ -169,6 +177,14 @@ export default async function CourseDetail({ params }) {
               </span>
             )}
           </div>
+
+          {course.previewVideo && (
+            <PreviewPlayer
+              url={course.previewVideo}
+              poster={course.thumbnail}
+              title={`${course.title} — free preview`}
+            />
+          )}
 
           {course.whatYouLearn?.length > 0 && (
             <section className="mt-8 rounded-2xl border border-brand-border bg-white p-6 shadow-card">

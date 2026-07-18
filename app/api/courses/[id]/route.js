@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
+import Category from '@/models/Category'
 import Section from '@/models/Section'
 import Lesson from '@/models/Lesson'
 import Quiz from '@/models/Quiz'
@@ -49,9 +50,28 @@ export async function PUT(req, { params }) {
   }
 
   const body = await req.json()
+  const update = pickCourse(body)
+
+  // Category can be edited later, but only to a valid, active category. If a
+  // categoryId is supplied it must resolve; the denormalized name is set from
+  // the authoritative record. If omitted, the existing category is preserved.
+  if (body.categoryId !== undefined) {
+    let category = null
+    try {
+      category = await Category.findOne({ _id: body.categoryId, active: true }).lean()
+    } catch {
+      category = null
+    }
+    if (!category) {
+      return NextResponse.json({ error: 'A valid category is required' }, { status: 400 })
+    }
+    update.categoryId = category._id
+    update.category = category.name
+  }
+
   const updated = await Course.findByIdAndUpdate(
     params.id,
-    { $set: pickCourse(body) },
+    { $set: update },
     { new: true }
   ).lean()
 

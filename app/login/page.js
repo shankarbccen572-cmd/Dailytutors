@@ -16,6 +16,7 @@ import {
 
 const WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID
 const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH
+const OTP_CONFIGURED = Boolean(WIDGET_ID && TOKEN_AUTH)
 // Primary + fallback host, matching MSG91's official loader snippet.
 const WIDGET_SCRIPTS = [
   'https://verify.msg91.com/otp-provider.js',
@@ -46,6 +47,10 @@ export default function LoginPage() {
   const [ready, setReady] = useState(false)
   const scriptRequested = useRef(false)
 
+  const otpUnavailableMessage = !OTP_CONFIGURED
+    ? 'OTP login is unavailable. Use Google sign-in or contact support.'
+    : ''
+
   // Already signed in → skip the login screen.
   useEffect(() => {
     getSession().then((session) => {
@@ -58,8 +63,7 @@ export default function LoginPage() {
     if (scriptRequested.current) return
     scriptRequested.current = true
 
-    if (!WIDGET_ID || !TOKEN_AUTH) {
-      setError('OTP login is not configured. Please contact support.')
+    if (!OTP_CONFIGURED) {
       return
     }
     if (typeof window !== 'undefined' && window.initSendOTP) {
@@ -212,13 +216,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={startVerification}
-                disabled={busy || !ready}
+                disabled={busy || !ready || !OTP_CONFIGURED}
                 className="group flex w-full items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-3 font-semibold text-white shadow-accent transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
               >
                 {busy ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Signing you in…
                   </>
+                ) : !OTP_CONFIGURED ? (
+                  'OTP login unavailable'
                 ) : !ready ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -234,6 +240,11 @@ export default function LoginPage() {
               {error && (
                 <p className="rounded-lg bg-brand-accentLight px-3 py-2 text-sm font-medium text-brand-accentDark">
                   {error}
+                </p>
+              )}
+              {!OTP_CONFIGURED && (
+                <p className="rounded-lg bg-brand-surface px-3 py-2 text-sm font-medium text-brand-textSecondary">
+                  {otpUnavailableMessage}
                 </p>
               )}
             </div>
