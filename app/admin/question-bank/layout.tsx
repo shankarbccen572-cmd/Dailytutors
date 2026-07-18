@@ -7,6 +7,7 @@ const tabs = [
   { href: '/admin/question-bank', label: 'Overview' },
   { href: '/admin/question-bank/upload', label: 'Upload' },
   { href: '/admin/question-bank/generate', label: 'Generate' },
+  { href: '/admin/question-bank/papers', label: 'Saved Papers' },
 ]
 
 export default function QuestionBankLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +24,7 @@ export default function QuestionBankLayout({ children }: { children: React.React
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-3xl border border-brand-border bg-white p-2 sm:grid-cols-3">
+      <div className="grid gap-3 rounded-3xl border border-brand-border bg-white p-2 sm:grid-cols-4">
         {tabs.map((tab) => {
           const active = pathname === tab.href
           return (

@@ -57,9 +57,16 @@ export default async function LearnPage({ params }) {
   const curriculumPublished = course.curriculumPublished !== false
   const importantPublished = course.importantQuestionsPublished === true
 
+  // Strip premium video URLs from the payload — the player fetches them
+  // on-demand from the enrollment-gated /api/lessons/[id]/video route. Expose
+  // only a hasVideo flag so the UI can show the right placeholder.
+  const stripVideo = (l) => {
+    const { videoUrl, ...rest } = l
+    return { ...rest, hasVideo: Boolean(videoUrl) }
+  }
   const sectionsWithLessons = sections.map((s) => ({
     ...s,
-    lessons: lessons.filter((l) => l.sectionId === s._id),
+    lessons: lessons.filter((l) => l.sectionId === s._id).map(stripVideo),
   }))
 
   return (

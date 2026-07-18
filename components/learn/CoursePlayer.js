@@ -140,8 +140,42 @@ export default function CoursePlayer({
   }, [allLessons, quizzes])
 
   const active = allLessons.find((l) => l._id === activeId) || null
-  const embed = active ? toEmbedUrl(active.videoUrl) : ''
-  const nativeVideo = active ? isDirectVideo(active.videoUrl) : false
+
+  // Premium video URLs are never in the page payload — fetch on demand from the
+  // enrollment-gated endpoint whenever the active lesson changes.
+  const [videoSrc, setVideoSrc] = useState('')
+  const [videoLoading, setVideoLoading] = useState(false)
+  const [videoError, setVideoError] = useState('')
+
+  useEffect(() => {
+    if (!activeId) {
+      setVideoSrc('')
+      return
+    }
+    let alive = true
+    setVideoLoading(true)
+    setVideoError('')
+    setVideoSrc('')
+    fetch(`/api/lessons/${activeId}/video`)
+      .then((r) =>
+        r.ok ? r.json() : r.json().then((e) => Promise.reject(new Error(e.error || 'Video locked')))
+      )
+      .then((data) => {
+        if (alive) setVideoSrc(data.url || '')
+      })
+      .catch((e) => {
+        if (alive) setVideoError(e.message)
+      })
+      .finally(() => {
+        if (alive) setVideoLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [activeId])
+
+  const embed = videoSrc ? toEmbedUrl(videoSrc) : ''
+  const nativeVideo = videoSrc ? isDirectVideo(videoSrc) : false
 
   // Count only completions for lessons that still exist (a deleted lesson can
   // linger in the saved set), and never exceed the total.
@@ -216,12 +250,15 @@ export default function CoursePlayer({
   }
 
   useEffect(() => {
-    if (!active || active.videoUrl && !isDirectVideo(active.videoUrl)) {
+    // Embedded (YouTube/Vimeo) players can't report progress, so once the
+    // source is known and it's an embed, auto-mark watched after ~80% of the
+    // stated duration. Native <video> uses onTimeUpdate/onEnded instead.
+    if (active && videoSrc && !isDirectVideo(videoSrc)) {
       if (activeTimer) {
         clearTimeout(activeTimer)
         setActiveTimer(null)
       }
-      if (active && !completed.has(active._id)) {
+      if (!completed.has(active._id)) {
         startEmbedTimer(active)
       }
     }
@@ -230,7 +267,8 @@ export default function CoursePlayer({
         clearTimeout(activeTimer)
       }
     }
-  }, [active, completed, activeTimer])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, videoSrc, completed])
 
   return (
     <div className="min-h-screen bg-brand-accentLight/20">
@@ -262,10 +300,16 @@ export default function CoursePlayer({
         {/* Player */}
         <div className="lg:col-span-2">
           <div className="aspect-video w-full overflow-hidden rounded-xl border border-brand-border bg-black">
-            {active && nativeVideo ? (
+            {videoLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-white/70">
+                Loading video…
+              </div>
+            ) : active && nativeVideo && videoSrc ? (
               <video
-                src={active.videoUrl}
+                src={videoSrc}
                 controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
                 className="h-full w-full"
                 onTimeUpdate={handleVideoTimeUpdate}
                 onEnded={handleVideoEnded}
@@ -279,9 +323,13 @@ export default function CoursePlayer({
                 className="h-full w-full"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-white/70">
-                {active
-                  ? 'No video added for this lesson yet.'
+              <div className="flex h-full items-center justify-center px-4 text-center text-sm text-white/70">
+                {videoError
+                  ? videoError
+                  : active
+                  ? active.hasVideo
+                    ? 'Video unavailable.'
+                    : 'No video added for this lesson yet.'
                   : 'Select a lesson to begin.'}
               </div>
             )}

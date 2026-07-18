@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import dbConnect from '@/lib/mongodb'
-import Enrollment from '@/models/Enrollment'
 import Payment from '@/models/Payment'
 import Course from '@/models/Course'
 import { getCurrentUser } from '@/lib/session'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
+import { ensureEnrollment } from '@/lib/enrollment'
 
 export async function POST(req) {
   try {
@@ -37,21 +37,8 @@ export async function POST(req) {
       return NextResponse.json({ error: 'The selected course is no longer available.' }, { status: 404 })
     }
 
-    const existingEnrollment = await Enrollment.findOne({ userId: user._id, courseId }).lean()
-    if (!existingEnrollment) {
-      let expiresAt = null
-      if (course.expirationDays !== null && course.expirationDays !== undefined) {
-        expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + course.expirationDays)
-      }
-
-      await Enrollment.create({
-        userId: user._id,
-        courseId,
-        status: 'active',
-        expiresAt,
-      })
-    }
+    // Grant access idempotently (shared with the webhook reconciliation path).
+    await ensureEnrollment(user._id, course)
 
     await Payment.updateOne(
       { _id: paymentRecord._id },

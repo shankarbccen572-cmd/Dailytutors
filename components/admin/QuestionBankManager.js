@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2, Library, ChevronRight, Filter, Archive, RotateCcw } from 'lucide-react'
+import { Plus, Trash2, Library, ChevronRight, Filter, Archive, RotateCcw, Upload, Download } from 'lucide-react'
 import { AR_OPTIONS } from '@/lib/bankQuestion'
+import RichText from '@/components/RichText'
+import ImageUpload from '@/components/admin/ImageUpload'
 
 const inputCls =
   'w-full rounded-lg border border-brand-border px-3 py-2 text-sm outline-none focus:border-brand-accent'
@@ -617,15 +619,28 @@ function QuestionForm({ subjectId, chapterId, topicId, onSave, onCancel }) {
 
       {/* question stem (not required for pure assertion-reason) */}
       {type !== 'assertion-reason' && (
-        <label className="block text-xs font-medium text-brand-textSecondary">
-          Question text
-          <textarea
-            className={`${inputCls} mt-1`}
-            rows={2}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </label>
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-brand-textSecondary">
+            Question text
+            <textarea
+              className={`${inputCls} mt-1`}
+              rows={2}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+          </label>
+          <p className="text-[11px] text-brand-textSecondary">
+            Formatting: <b>**bold**</b>, <i>*italic*</i>, <code>`code`</code>, math <code>$x^2$</code> or <code>$$...$$</code>, image <code>![alt](url)</code>, and <code>| tables |</code>.
+          </p>
+          {text.trim() && (
+            <div className="rounded-lg border border-brand-border bg-white p-3">
+              <span className="mb-1 block text-[11px] uppercase tracking-wide text-brand-textSecondary">
+                Preview
+              </span>
+              <RichText text={text} className="text-sm text-brand-textPrimary" />
+            </div>
+          )}
+        </div>
       )}
 
       {/* per-type content */}
@@ -736,10 +751,10 @@ function QuestionForm({ subjectId, chapterId, topicId, onSave, onCancel }) {
       )}
 
       {IMAGE_TYPES.includes(type) && (
-        <label className="block text-xs font-medium text-brand-textSecondary">
-          Image URL
-          <input className={`${inputCls} mt-1`} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-        </label>
+        <div className="space-y-1">
+          <span className="block text-xs font-medium text-brand-textSecondary">Question image</span>
+          <ImageUpload value={imageUrl} onChange={setImageUrl} />
+        </div>
       )}
 
       {(SUBJECTIVE_TYPES.includes(type) || PASSAGE_TYPES.includes(type)) && (
@@ -810,6 +825,12 @@ export default function QuestionBankManager({
   const [paperInstitution, setPaperInstitution] = useState('')
   const [paperTeacher, setPaperTeacher] = useState('')
   const [includeAnswerKey, setIncludeAnswerKey] = useState(false)
+  const [savedPaper, setSavedPaper] = useState(null)
+  const [savingPaper, setSavingPaper] = useState(false)
+  const [paperError, setPaperError] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkResult, setBulkResult] = useState(null)
+  const [bulkError, setBulkError] = useState('')
 
   const reloadChapters = useCallback(async () => {
     if (!selectedSubject) return setChapters([])
@@ -913,6 +934,65 @@ export default function QuestionBankManager({
   async function restoreQuestion(id) {
     const updated = await api(`/api/question-bank/questions/${id}`, 'PATCH', { action: 'restore' })
     setQuestions((p) => p.map((q) => (q._id === id ? updated : q)))
+  }
+
+  // Bulk-upload a CSV/Excel file into the selected chapter (+ optional topic).
+  async function doBulkUpload(file) {
+    if (!file || !selectedChapter || !selectedSubject) return
+    setBulkBusy(true)
+    setBulkError('')
+    setBulkResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('subjectId', selectedSubject._id)
+      fd.append('chapterId', selectedChapter._id)
+      if (selectedTopic) fd.append('topicId', selectedTopic._id)
+      const res = await fetch('/api/question-bank/questions/bulk', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setBulkResult(data)
+      reloadQuestions()
+    } catch (e) {
+      setBulkError(e.message)
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  // Persist the currently-loaded questions as a real QuestionPaper (one
+  // section). Returns the created paper so the caller can offer downloads.
+  async function savePaper(status) {
+    setPaperError('')
+    if (questions.length === 0) {
+      setPaperError('Load some questions first.')
+      return
+    }
+    setSavingPaper(true)
+    try {
+      const paper = await api('/api/question-bank/papers', 'POST', {
+        title: paperTitle,
+        institution: paperInstitution,
+        teacher: paperTeacher,
+        instructions: paperInstructions,
+        footerText: paperFooter,
+        includeAnswerKey,
+        status,
+        categoryId: selectedCategory || null,
+        subjectId: selectedSubject?._id || null,
+        sections: [
+          {
+            title: 'Section A',
+            questionIds: questions.map((q) => q._id),
+          },
+        ],
+      })
+      setSavedPaper(paper)
+    } catch (e) {
+      setPaperError(e.message)
+    } finally {
+      setSavingPaper(false)
+    }
   }
 
   return (
@@ -1029,6 +1109,62 @@ export default function QuestionBankManager({
                   </label>
                 </div>
 
+                {/* Bulk upload */}
+                <div className="mt-4 rounded-xl border border-dashed border-brand-border bg-brand-accentLight/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-textPrimary">
+                        <Upload className="h-4 w-4" /> Bulk upload
+                      </h3>
+                      <p className="text-xs text-brand-textSecondary">
+                        CSV or Excel into “{selectedChapter.title}”
+                        {selectedTopic ? ` · ${selectedTopic.title}` : ''}. Supports MCQ, multiple,
+                        true/false, fill-blank, one-word, numeric &amp; subjective.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href="/api/question-bank/questions/bulk"
+                        className="inline-flex items-center gap-1 rounded-lg border border-brand-border bg-white px-3 py-1.5 text-xs font-semibold text-brand-textPrimary shadow-card"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Template
+                      </a>
+                      <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-accent-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-accent">
+                        {bulkBusy ? 'Uploading…' : 'Choose file'}
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls,.txt"
+                          className="hidden"
+                          disabled={bulkBusy}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0]
+                            if (f) doBulkUpload(f)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {bulkError && <p className="mt-2 text-xs text-brand-accent">{bulkError}</p>}
+                  {bulkResult && (
+                    <div className="mt-2 text-xs">
+                      <p className="font-semibold text-brand-success">
+                        Inserted {bulkResult.inserted} of {bulkResult.total}.
+                        {bulkResult.failedCount > 0 ? ` ${bulkResult.failedCount} failed.` : ''}
+                      </p>
+                      {bulkResult.failed?.length > 0 && (
+                        <ul className="mt-1 max-h-32 list-inside list-disc overflow-y-auto text-brand-textSecondary">
+                          {bulkResult.failed.map((f, i) => (
+                            <li key={i}>
+                              Row {f.row}: {f.error}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-4 space-y-2">
                   {filteredQuestions.map((q) => (
                     <div key={q._id} className="flex items-start justify-between gap-3 rounded-xl border border-brand-border bg-white p-4 shadow-card">
@@ -1054,9 +1190,13 @@ export default function QuestionBankManager({
                             </span>
                           )}
                         </div>
-                        <p className="truncate text-sm text-brand-textPrimary">
-                          {q.text || q.assertion || '(no text)'}
-                        </p>
+                        <div className="line-clamp-2 text-sm text-brand-textPrimary">
+                          {q.text || q.assertion ? (
+                            <RichText text={q.text || q.assertion} />
+                          ) : (
+                            '(no text)'
+                          )}
+                        </div>
                         {q.topicId && selectedTopic ? (
                           <p className="mt-1 text-xs text-brand-textSecondary">Topic: {selectedTopic.title}</p>
                         ) : null}
@@ -1181,53 +1321,53 @@ export default function QuestionBankManager({
                       onChange={(e) => setIncludeAnswerKey(e.target.checked)}
                       className="h-4 w-4 rounded border-brand-border text-brand-accent"
                     />
-                    Include answer key
+                    Include answer key (in downloads)
                   </label>
                   <button
-                    onClick={() => {
-                      const html = buildPaperHtml({
-                        title: paperTitle,
-                        institution: paperInstitution,
-                        teacher: paperTeacher,
-                        instructions: paperInstructions,
-                        footer: paperFooter,
-                        questions,
-                        includeAnswerKey,
-                      })
-                      saveWordFile(html, `${paperTitle.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '') || 'question-paper'}.doc`)
-                    }}
-                    disabled={questions.length === 0}
-                    className="inline-flex items-center justify-center rounded-xl bg-accent-gradient px-4 py-2 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
-                  >
-                    Download Word document
-                  </button>
-                  <button
-                    onClick={() => {
-                      const html = buildPaperHtml({
-                        title: paperTitle,
-                        institution: paperInstitution,
-                        teacher: paperTeacher,
-                        instructions: paperInstructions,
-                        footer: paperFooter,
-                        questions,
-                        includeAnswerKey,
-                      })
-                      const blob = new Blob([html], { type: 'text/html' })
-                      const previewUrl = URL.createObjectURL(blob)
-                      const preview = window.open(previewUrl, '_blank')
-                      if (preview) {
-                        preview.focus()
-                        setTimeout(() => URL.revokeObjectURL(previewUrl), 5000)
-                      } else {
-                        alert('Preview blocked by browser. Please allow popups for this site.')
-                      }
-                    }}
-                    disabled={questions.length === 0}
+                    onClick={() => savePaper('draft')}
+                    disabled={savingPaper || questions.length === 0}
                     className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-brand-textPrimary shadow-card disabled:opacity-60"
                   >
-                    Preview / save PDF
+                    {savingPaper ? 'Saving…' : 'Save as draft'}
                   </button>
+                  <button
+                    onClick={() => savePaper('published')}
+                    disabled={savingPaper || questions.length === 0}
+                    className="inline-flex items-center justify-center rounded-xl bg-accent-gradient px-4 py-2 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
+                  >
+                    {savingPaper ? 'Saving…' : 'Save & publish'}
+                  </button>
+                  <Link
+                    href="/admin/question-bank/papers"
+                    className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-brand-textPrimary shadow-card"
+                  >
+                    All saved papers
+                  </Link>
                 </div>
+
+                {paperError && <p className="mt-3 text-sm text-brand-accent">{paperError}</p>}
+
+                {savedPaper && (
+                  <div className="mt-4 rounded-xl border border-brand-success/40 bg-brand-success/10 p-4">
+                    <p className="text-sm font-semibold text-brand-textPrimary">
+                      Saved “{savedPaper.title}” ({savedPaper.status}) · {savedPaper.totalQuestions} questions · {savedPaper.totalMarks} marks
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={`/api/question-bank/papers/${savedPaper._id}/export?format=pdf&answerKey=${includeAnswerKey}`}
+                        className="rounded-lg bg-accent-gradient px-3 py-1.5 text-sm font-semibold text-white shadow-accent"
+                      >
+                        Download PDF
+                      </a>
+                      <a
+                        href={`/api/question-bank/papers/${savedPaper._id}/export?format=docx&answerKey=${includeAnswerKey}`}
+                        className="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-sm font-semibold text-brand-textPrimary shadow-card"
+                      >
+                        Download Word
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
