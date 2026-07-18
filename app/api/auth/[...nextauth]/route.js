@@ -17,6 +17,7 @@ function getOriginFromRequest(request) {
 export async function GET(request) {
 	const origin = getOriginFromRequest(request)
 	if (origin) process.env.NEXTAUTH_URL = origin
+	console.log('NextAuth request origin:', origin || process.env.NEXTAUTH_URL)
 	const handler = NextAuth(authOptions)
 	return handler(request)
 }
@@ -24,6 +25,7 @@ export async function GET(request) {
 export async function POST(request) {
 	const origin = getOriginFromRequest(request)
 	if (origin) process.env.NEXTAUTH_URL = origin
+	console.log('NextAuth request origin:', origin || process.env.NEXTAUTH_URL)
 	const handler = NextAuth(authOptions)
 	return handler(request)
 }
