@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { SITE_DEFAULTS, SOCIAL_TYPES, mergeSiteSettings } from '@/lib/siteDefaults'
 import { ICON_NAMES } from '@/lib/icons'
+import { uploadImageToCloudinary } from '@/lib/cloudinaryUpload'
 
 /* ---------- small presentational helpers ---------- */
 
@@ -141,14 +142,10 @@ export default function SiteSettingsPage() {
     setUploading(true)
     setUploadError('')
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed')
+      const url = await uploadImageToCloudinary(file, 'hero-banners')
       const next = {
         ...settings,
-        heroBanners: settings.heroBanners.map((b, i) => (i === index ? { ...b, imageUrl: data.url } : b)),
+        heroBanners: settings.heroBanners.map((b, i) => (i === index ? { ...b, imageUrl: url } : b)),
       }
       setSettings(next)
       await save(next)
