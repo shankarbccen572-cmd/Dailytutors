@@ -3,34 +3,25 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from 'react'
 
-const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-
 export default function ImageUpload({ value, onChange }) {
   const [uploading, setUploading] = useState(false)
   const [err, setErr] = useState('')
-  const configured = Boolean(CLOUD && PRESET)
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!configured) {
-      setErr('Cloudinary is not configured yet — paste an image URL below instead.')
-      return
-    }
     setErr('')
     setUploading(true)
     try {
+      // Upload via our server route, which sends the image to Cloudinary using
+      // server-side credentials (works on Vercel's read-only filesystem).
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('upload_preset', PRESET)
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,
-        { method: 'POST', body: fd }
-      )
-      const data = await res.json()
-      if (data.secure_url) onChange(data.secure_url)
-      else throw new Error(data.error?.message || 'Upload failed')
+      fd.append('folder', 'course-thumbnails')
+      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.url) onChange(data.url)
+      else throw new Error(data.error || 'Upload failed')
     } catch (e2) {
       setErr(e2.message)
     } finally {
@@ -56,11 +47,6 @@ export default function ImageUpload({ value, onChange }) {
             className="block text-sm text-brand-textSecondary file:mr-3 file:rounded-md file:border-0 file:bg-brand-accent file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-accentDark"
           />
           {uploading && <p className="text-xs text-brand-textSecondary">Uploading…</p>}
-          {!configured && (
-            <p className="text-xs text-brand-warning">
-              Cloudinary not configured — paste a URL below for now.
-            </p>
-          )}
         </div>
       </div>
       <input
