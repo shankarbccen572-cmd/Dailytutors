@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Trash2, Library, ChevronRight, Filter, Archive, RotateCcw, Upload, Download } from 'lucide-react'
+import { Plus, Trash2, Library, ChevronRight, Filter, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react'
 import { AR_OPTIONS } from '@/lib/bankQuestion'
 import RichText from '@/components/RichText'
 import ImageUpload from '@/components/admin/ImageUpload'
@@ -475,6 +475,7 @@ function QuestionForm({ subjectId, chapterId, topicId, onSave, onCancel }) {
   const [tags, setTags] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const [options, setOptions] = useState([
     { text: '', isCorrect: true },
@@ -578,53 +579,26 @@ function QuestionForm({ subjectId, chapterId, topicId, onSave, onCancel }) {
   const multi = type === 'multiple'
 
   return (
-    <div className="space-y-3 rounded-2xl border border-dashed border-brand-border bg-brand-accentLight/20 p-4">
-      {/* metadata row */}
-      <div className="grid gap-3 sm:grid-cols-4">
-        <label className="text-xs font-medium text-brand-textSecondary">
-          Type
-          <select className={`${inputCls} mt-1`} value={type} onChange={(e) => changeType(e.target.value)}>
-            {TYPES.map((t) => (
-              <option key={t.val} value={t.val}>{t.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-brand-textSecondary">
-          Difficulty
-          <select className={`${inputCls} mt-1`} value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-            {DIFFICULTIES.map((d) => (
-              <option key={d} value={d} className="capitalize">{d}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-brand-textSecondary">
-          Source
-          <select className={`${inputCls} mt-1`} value={source} onChange={(e) => setSource(e.target.value)}>
-            {SOURCES.map((s) => (
-              <option key={s.val} value={s.val}>{s.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-brand-textSecondary">
-          Marks
-          <input
-            type="number"
-            min="1"
-            className={`${inputCls} mt-1`}
-            value={marks}
-            onChange={(e) => setMarks(Number(e.target.value))}
-          />
-        </label>
-      </div>
+    <div className="space-y-5 rounded-2xl border border-brand-border bg-white p-5 shadow-card">
+      {/* Step 1 — question type */}
+      <label className="block text-sm font-semibold text-brand-textPrimary">
+        1. Question type
+        <select className={`${inputCls} mt-1.5 font-normal`} value={type} onChange={(e) => changeType(e.target.value)}>
+          {TYPES.map((t) => (
+            <option key={t.val} value={t.val}>{t.label}</option>
+          ))}
+        </select>
+      </label>
 
-      {/* question stem (not required for pure assertion-reason) */}
+      {/* Step 2 — question text (not required for pure assertion-reason) */}
       {type !== 'assertion-reason' && (
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-brand-textSecondary">
-            Question text
+          <label className="block text-sm font-semibold text-brand-textPrimary">
+            2. Question
             <textarea
-              className={`${inputCls} mt-1`}
-              rows={2}
+              className={`${inputCls} mt-1.5 font-normal`}
+              rows={3}
+              placeholder="Type the question here…"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
@@ -764,29 +738,73 @@ function QuestionForm({ subjectId, chapterId, topicId, onSave, onCancel }) {
         </label>
       )}
 
-      {/* explanation + tags */}
-      <label className="block text-xs font-medium text-brand-textSecondary">
-        Explanation (optional)
-        <textarea className={`${inputCls} mt-1`} rows={2} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
-      </label>
+      {/* Difficulty + marks — common, with sensible defaults */}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs font-medium text-brand-textSecondary">
-          Exams (comma separated)
-          <input className={`${inputCls} mt-1`} placeholder="CBSE, JEE, NEET" value={exams} onChange={(e) => setExams(e.target.value)} />
+          Difficulty
+          <select className={`${inputCls} mt-1`} value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+            {DIFFICULTIES.map((d) => (
+              <option key={d} value={d} className="capitalize">{d}</option>
+            ))}
+          </select>
         </label>
         <label className="text-xs font-medium text-brand-textSecondary">
-          Tags (comma separated)
-          <input className={`${inputCls} mt-1`} placeholder="kinematics, 2023" value={tags} onChange={(e) => setTags(e.target.value)} />
+          Marks
+          <input
+            type="number"
+            min="1"
+            className={`${inputCls} mt-1`}
+            value={marks}
+            onChange={(e) => setMarks(Number(e.target.value))}
+          />
         </label>
       </div>
 
+      {/* Everything else tucked away so the common case stays simple */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent"
+        >
+          {showAdvanced ? '− Hide extra details' : '+ Add source, explanation, tags (optional)'}
+        </button>
+        {showAdvanced && (
+          <div className="mt-3 space-y-3 rounded-xl border border-brand-border bg-brand-accentLight/10 p-3">
+            <label className="block text-xs font-medium text-brand-textSecondary">
+              Source
+              <select className={`${inputCls} mt-1`} value={source} onChange={(e) => setSource(e.target.value)}>
+                {SOURCES.map((s) => (
+                  <option key={s.val} value={s.val}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs font-medium text-brand-textSecondary">
+              Explanation
+              <textarea className={`${inputCls} mt-1`} rows={2} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-medium text-brand-textSecondary">
+                Exams (comma separated)
+                <input className={`${inputCls} mt-1`} placeholder="CBSE, JEE, NEET" value={exams} onChange={(e) => setExams(e.target.value)} />
+              </label>
+              <label className="text-xs font-medium text-brand-textSecondary">
+                Tags (comma separated)
+                <input className={`${inputCls} mt-1`} placeholder="kinematics, 2023" value={tags} onChange={(e) => setTags(e.target.value)} />
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+
       {error && <p className="text-sm text-brand-accent">{error}</p>}
-      <div className="flex gap-2">
+      <div className="flex gap-2 border-t border-brand-border pt-4">
         <button
           onClick={submit}
           disabled={saving}
-          className="rounded-lg bg-accent-gradient px-4 py-2 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
         >
+          <Plus className="h-4 w-4" />
           {saving ? 'Saving…' : 'Save question'}
         </button>
         <button onClick={onCancel} className={chipBtn}>Cancel</button>
@@ -828,6 +846,7 @@ export default function QuestionBankManager({
   const [savedPaper, setSavedPaper] = useState(null)
   const [savingPaper, setSavingPaper] = useState(false)
   const [paperError, setPaperError] = useState('')
+  const [showPaperDetails, setShowPaperDetails] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkResult, setBulkResult] = useState(null)
   const [bulkError, setBulkError] = useState('')
@@ -1264,78 +1283,83 @@ export default function QuestionBankManager({
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <label className="text-xs font-medium text-brand-textSecondary">
-                    Paper title
-                    <input
-                      className={`${inputCls} mt-1`}
-                      value={paperTitle}
-                      onChange={(e) => setPaperTitle(e.target.value)}
-                    />
-                  </label>
-                  <label className="text-xs font-medium text-brand-textSecondary">
-                    Institution name
-                    <input
-                      className={`${inputCls} mt-1`}
-                      value={paperInstitution}
-                      onChange={(e) => setPaperInstitution(e.target.value)}
-                    />
-                  </label>
-                  <label className="text-xs font-medium text-brand-textSecondary">
-                    Subject teacher name
-                    <input
-                      className={`${inputCls} mt-1`}
-                      value={paperTeacher}
-                      onChange={(e) => setPaperTeacher(e.target.value)}
-                    />
-                  </label>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-xs font-medium text-brand-textSecondary">
-                    Header instructions
-                    <input
-                      className={`${inputCls} mt-1`}
-                      value={paperInstructions}
-                      onChange={(e) => setPaperInstructions(e.target.value)}
-                    />
-                  </label>
-                  <label className="text-xs font-medium text-brand-textSecondary">
-                    Footer text
-                    <input
-                      className={`${inputCls} mt-1`}
-                      value={paperFooter}
-                      onChange={(e) => setPaperFooter(e.target.value)}
-                    />
-                  </label>
+                {questions.length === 0 && (
+                  <div className="mb-4 rounded-xl border border-dashed border-brand-border bg-brand-accentLight/10 p-6 text-center text-sm text-brand-textSecondary">
+                    No questions loaded yet. Pick a subject and chapter on the left — every question in that chapter is added to the paper.
+                  </div>
+                )}
+
+                <label className="block text-sm font-semibold text-brand-textPrimary">
+                  Paper title
+                  <input
+                    className={`${inputCls} mt-1.5 font-normal`}
+                    placeholder="e.g. Class 10 · Physics · Unit Test 1"
+                    value={paperTitle}
+                    onChange={(e) => setPaperTitle(e.target.value)}
+                  />
+                </label>
+
+                <label className="mt-3 inline-flex items-center gap-2 text-sm text-brand-textPrimary">
+                  <input
+                    type="checkbox"
+                    checked={includeAnswerKey}
+                    onChange={(e) => setIncludeAnswerKey(e.target.checked)}
+                    className="h-4 w-4 rounded border-brand-border text-brand-accent"
+                  />
+                  Include answer key in downloads
+                </label>
+
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaperDetails((v) => !v)}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent"
+                  >
+                    {showPaperDetails ? '− Hide header details' : '+ Add institution, teacher & instructions (optional)'}
+                  </button>
+                  {showPaperDetails && (
+                    <div className="mt-3 space-y-3 rounded-xl border border-brand-border bg-brand-accentLight/10 p-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="text-xs font-medium text-brand-textSecondary">
+                          Institution name
+                          <input className={`${inputCls} mt-1`} value={paperInstitution} onChange={(e) => setPaperInstitution(e.target.value)} />
+                        </label>
+                        <label className="text-xs font-medium text-brand-textSecondary">
+                          Subject teacher name
+                          <input className={`${inputCls} mt-1`} value={paperTeacher} onChange={(e) => setPaperTeacher(e.target.value)} />
+                        </label>
+                      </div>
+                      <label className="block text-xs font-medium text-brand-textSecondary">
+                        Header instructions
+                        <input className={`${inputCls} mt-1`} value={paperInstructions} onChange={(e) => setPaperInstructions(e.target.value)} />
+                      </label>
+                      <label className="block text-xs font-medium text-brand-textSecondary">
+                        Footer text
+                        <input className={`${inputCls} mt-1`} value={paperFooter} onChange={(e) => setPaperFooter(e.target.value)} />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-2 text-sm text-brand-textSecondary">
-                    <input
-                      type="checkbox"
-                      checked={includeAnswerKey}
-                      onChange={(e) => setIncludeAnswerKey(e.target.checked)}
-                      className="h-4 w-4 rounded border-brand-border text-brand-accent"
-                    />
-                    Include answer key (in downloads)
-                  </label>
-                  <button
-                    onClick={() => savePaper('draft')}
-                    disabled={savingPaper || questions.length === 0}
-                    className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-brand-textPrimary shadow-card disabled:opacity-60"
-                  >
-                    {savingPaper ? 'Saving…' : 'Save as draft'}
-                  </button>
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-brand-border pt-4">
                   <button
                     onClick={() => savePaper('published')}
                     disabled={savingPaper || questions.length === 0}
-                    className="inline-flex items-center justify-center rounded-xl bg-accent-gradient px-4 py-2 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
                   >
-                    {savingPaper ? 'Saving…' : 'Save & publish'}
+                    <FileText className="h-4 w-4" />
+                    {savingPaper ? 'Saving…' : 'Save & create paper'}
+                  </button>
+                  <button
+                    onClick={() => savePaper('draft')}
+                    disabled={savingPaper || questions.length === 0}
+                    className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card disabled:opacity-60"
+                  >
+                    {savingPaper ? 'Saving…' : 'Save as draft'}
                   </button>
                   <Link
                     href="/admin/question-bank/papers"
-                    className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-brand-textPrimary shadow-card"
+                    className="ml-auto inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card"
                   >
                     All saved papers
                   </Link>
