@@ -35,8 +35,9 @@ export default function SiteNavbar({ links = DEFAULT_LINKS }) {
   const [scrolled, setScrolled] = useState(false)
   const { loading, authenticated } = useAuthStatus()
 
-  // Hide the "Login" nav link once the user is signed in.
-  const visibleLinks = authenticated ? links.filter((l) => !isLoginLink(l)) : links
+  // The "Login" nav link is redundant with the Sign in / Dashboard CTA, so
+  // always drop it and let the button be the single auth control.
+  const visibleLinks = links.filter((l) => !isLoginLink(l))
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)

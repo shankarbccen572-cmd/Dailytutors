@@ -66,7 +66,7 @@ export default async function StudentHome() {
             Keep your streak going
           </span>
           <h1 className="mt-3 font-heading text-2xl font-bold sm:text-3xl">
-            Welcome back, {firstName} 👋
+            Welcome, {firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-white/85 sm:text-base">
             {enrollments.length > 0
