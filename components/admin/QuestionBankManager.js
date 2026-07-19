@@ -65,6 +65,17 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;')
 }
 
+// Short, plain-text preview of a question for compact list rows.
+function plainPreview(q) {
+  const raw = q?.text || q?.assertion || q?.intro || '(no text)'
+  return String(raw)
+    .replace(/!\[.*?\]\(.*?\)/g, '[image]')
+    .replace(/[#*`_>~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140)
+}
+
 function renderQuestionHtml(q, index) {
   const questionNumber = index + 1
   const header = `<div class="paper-question"><span class="question-number">${questionNumber}.</span> ${escapeHtml(q.text || q.assertion || '')}`
@@ -284,14 +295,12 @@ function TaxonomyColumn({
     }`
 
   return (
-    <div className="space-y-4">
+    <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
       {/* Category */}
-      <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
-          Category / Standard
-        </h3>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
+        Category / Standard
         <select
-          className={inputCls}
+          className={`${inputCls} mt-1.5 font-normal normal-case tracking-normal text-brand-textPrimary`}
           value={selectedCategory}
           onChange={(e) => {
             setSelectedCategory(e.target.value)
@@ -307,15 +316,15 @@ function TaxonomyColumn({
             </option>
           ))}
         </select>
-        {categories.length === 0 && (
-          <p className="mt-2 text-xs text-brand-accent">
-            No categories found. Run the category seed/migration script.
-          </p>
-        )}
-      </div>
+      </label>
+      {categories.length === 0 && (
+        <p className="mt-2 text-xs text-brand-accent">
+          No categories found. Run the category seed/migration script.
+        </p>
+      )}
 
       {/* Subjects */}
-      <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+      <div className="mt-4 border-t border-brand-border pt-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
           Subjects
         </h3>
@@ -365,7 +374,7 @@ function TaxonomyColumn({
 
       {/* Chapters */}
       {selectedSubject && (
-        <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+        <div className="mt-4 border-t border-brand-border pt-4">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
             Chapters · {selectedSubject.name}
           </h3>
@@ -413,9 +422,9 @@ function TaxonomyColumn({
 
       {/* Topics */}
       {selectedChapter && (
-        <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+        <div className="mt-4 border-t border-brand-border pt-4">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-textSecondary">
-            Topics · {selectedChapter.title}
+            Topics <span className="font-normal normal-case text-brand-textSecondary">(optional)</span> · {selectedChapter.title}
           </h3>
           <div className="space-y-1">
             <div
@@ -847,6 +856,8 @@ export default function QuestionBankManager({
   const [savingPaper, setSavingPaper] = useState(false)
   const [paperError, setPaperError] = useState('')
   const [showPaperDetails, setShowPaperDetails] = useState(false)
+  // Questions the user has hand-picked into the paper (generate mode).
+  const [paperQuestions, setPaperQuestions] = useState([])
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkResult, setBulkResult] = useState(null)
   const [bulkError, setBulkError] = useState('')
@@ -979,12 +990,28 @@ export default function QuestionBankManager({
     }
   }
 
-  // Persist the currently-loaded questions as a real QuestionPaper (one
-  // section). Returns the created paper so the caller can offer downloads.
+  // --- Paper basket (generate mode): search questions and add them one by one.
+  const paperIds = new Set(paperQuestions.map((q) => q._id))
+  function addToPaper(q) {
+    setPaperQuestions((p) => (p.some((x) => x._id === q._id) ? p : [...p, q]))
+  }
+  function removeFromPaper(id) {
+    setPaperQuestions((p) => p.filter((q) => q._id !== id))
+  }
+  function addAllVisibleToPaper() {
+    setPaperQuestions((p) => {
+      const have = new Set(p.map((q) => q._id))
+      return [...p, ...filteredQuestions.filter((q) => !have.has(q._id))]
+    })
+  }
+  const paperMarks = paperQuestions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0)
+
+  // Persist the hand-picked questions as a real QuestionPaper (one section).
+  // Returns the created paper so the caller can offer downloads.
   async function savePaper(status) {
     setPaperError('')
-    if (questions.length === 0) {
-      setPaperError('Load some questions first.')
+    if (paperQuestions.length === 0) {
+      setPaperError('Search for questions and add at least one to the paper.')
       return
     }
     setSavingPaper(true)
@@ -1002,7 +1029,7 @@ export default function QuestionBankManager({
         sections: [
           {
             title: 'Section A',
-            questionIds: questions.map((q) => q._id),
+            questionIds: paperQuestions.map((q) => q._id),
           },
         ],
       })
@@ -1272,122 +1299,223 @@ export default function QuestionBankManager({
                 )}
               </div>
             ) : mode === 'generate' ? (
-              <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-semibold text-brand-textPrimary">Generate question paper</h2>
-                    <p className="text-sm text-brand-textSecondary">Download the current paper with a custom header, footer and optional answer key.</p>
+              <div className="space-y-4">
+                {/* Step 1 — find & add questions */}
+                <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold text-brand-textPrimary">1. Search &amp; add questions</h2>
+                    {filteredQuestions.length > 0 && (
+                      <button onClick={addAllVisibleToPaper} className="text-sm font-semibold text-brand-accent">
+                        + Add all {filteredQuestions.length} shown
+                      </button>
+                    )}
                   </div>
-                  <div className="rounded-full bg-brand-accentLight px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-accentDark">
-                    {questions.length} question{questions.length === 1 ? '' : 's'} selected
+
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <input
+                      className={`${inputCls} min-w-0`}
+                      placeholder="Search questions by keyword, tag or year"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-brand-border bg-white px-4 text-sm font-semibold text-brand-textPrimary shadow-card"
+                    >
+                      Clear
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Filter className="h-4 w-4 text-brand-textSecondary" />
+                    <select className={`${inputCls} w-auto`} value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}>
+                      <option value="">All types</option>
+                      {TYPES.map((t) => <option key={t.val} value={t.val}>{t.label}</option>)}
+                    </select>
+                    <select className={`${inputCls} w-auto`} value={filters.difficulty} onChange={(e) => setFilters((f) => ({ ...f, difficulty: e.target.value }))}>
+                      <option value="">All difficulty</option>
+                      {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <select className={`${inputCls} w-auto`} value={filters.marks} onChange={(e) => setFilters((f) => ({ ...f, marks: e.target.value }))}>
+                      <option value="">Any marks</option>
+                      {[1, 2, 3, 4, 5].map((m) => <option key={m} value={m}>{m} mark{m === 1 ? '' : 's'}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="mt-3 max-h-[420px] space-y-2 overflow-auto">
+                    {filteredQuestions.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-brand-border p-6 text-center text-sm text-brand-textSecondary">
+                        {selectedChapter
+                          ? 'No questions match. Try another keyword or filter.'
+                          : 'Pick a subject and chapter on the left to see its questions.'}
+                      </p>
+                    ) : (
+                      filteredQuestions.map((q) => {
+                        const inPaper = paperIds.has(q._id)
+                        return (
+                          <div key={q._id} className="flex items-start justify-between gap-3 rounded-xl border border-brand-border p-3">
+                            <div className="min-w-0">
+                              <p className="text-sm text-brand-textPrimary">{plainPreview(q)}</p>
+                              <p className="mt-1 text-xs capitalize text-brand-textSecondary">
+                                {q.type} · {q.difficulty} · {q.marks} mark{q.marks === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => (inPaper ? removeFromPaper(q._id) : addToPaper(q))}
+                              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                                inPaper
+                                  ? 'border border-brand-success/50 bg-brand-success/10 text-brand-success'
+                                  : 'bg-accent-gradient text-white shadow-accent'
+                              }`}
+                            >
+                              {inPaper ? '✓ Added' : '+ Add'}
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
 
-                {questions.length === 0 && (
-                  <div className="mb-4 rounded-xl border border-dashed border-brand-border bg-brand-accentLight/10 p-6 text-center text-sm text-brand-textSecondary">
-                    No questions loaded yet. Pick a subject and chapter on the left — every question in that chapter is added to the paper.
+                {/* Step 2 — your paper */}
+                <div className="rounded-2xl border border-brand-border bg-white p-4 shadow-card">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold text-brand-textPrimary">2. Your paper</h2>
+                    <span className="rounded-full bg-brand-accentLight px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-accentDark">
+                      {paperQuestions.length} question{paperQuestions.length === 1 ? '' : 's'} · {paperMarks} marks
+                    </span>
                   </div>
-                )}
 
-                <label className="block text-sm font-semibold text-brand-textPrimary">
-                  Paper title
-                  <input
-                    className={`${inputCls} mt-1.5 font-normal`}
-                    placeholder="e.g. Class 10 · Physics · Unit Test 1"
-                    value={paperTitle}
-                    onChange={(e) => setPaperTitle(e.target.value)}
-                  />
-                </label>
-
-                <label className="mt-3 inline-flex items-center gap-2 text-sm text-brand-textPrimary">
-                  <input
-                    type="checkbox"
-                    checked={includeAnswerKey}
-                    onChange={(e) => setIncludeAnswerKey(e.target.checked)}
-                    className="h-4 w-4 rounded border-brand-border text-brand-accent"
-                  />
-                  Include answer key in downloads
-                </label>
-
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowPaperDetails((v) => !v)}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent"
-                  >
-                    {showPaperDetails ? '− Hide header details' : '+ Add institution, teacher & instructions (optional)'}
-                  </button>
-                  {showPaperDetails && (
-                    <div className="mt-3 space-y-3 rounded-xl border border-brand-border bg-brand-accentLight/10 p-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="text-xs font-medium text-brand-textSecondary">
-                          Institution name
-                          <input className={`${inputCls} mt-1`} value={paperInstitution} onChange={(e) => setPaperInstitution(e.target.value)} />
-                        </label>
-                        <label className="text-xs font-medium text-brand-textSecondary">
-                          Subject teacher name
-                          <input className={`${inputCls} mt-1`} value={paperTeacher} onChange={(e) => setPaperTeacher(e.target.value)} />
-                        </label>
-                      </div>
-                      <label className="block text-xs font-medium text-brand-textSecondary">
-                        Header instructions
-                        <input className={`${inputCls} mt-1`} value={paperInstructions} onChange={(e) => setPaperInstructions(e.target.value)} />
-                      </label>
-                      <label className="block text-xs font-medium text-brand-textSecondary">
-                        Footer text
-                        <input className={`${inputCls} mt-1`} value={paperFooter} onChange={(e) => setPaperFooter(e.target.value)} />
-                      </label>
+                  {paperQuestions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-brand-border bg-brand-accentLight/10 p-6 text-center text-sm text-brand-textSecondary">
+                      No questions added yet. Search above and click “Add”.
                     </div>
+                  ) : (
+                    <ol className="space-y-2">
+                      {paperQuestions.map((q, i) => (
+                        <li key={q._id} className="flex items-start justify-between gap-3 rounded-xl border border-brand-border p-3">
+                          <div className="min-w-0">
+                            <p className="text-sm text-brand-textPrimary">
+                              <span className="font-semibold">{i + 1}.</span> {plainPreview(q)}
+                            </p>
+                            <p className="mt-1 text-xs capitalize text-brand-textSecondary">
+                              {q.type} · {q.marks} mark{q.marks === 1 ? '' : 's'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeFromPaper(q._id)}
+                            className="shrink-0 text-brand-textSecondary transition hover:text-brand-accent"
+                            title="Remove from paper"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
                   )}
-                </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-brand-border pt-4">
-                  <button
-                    onClick={() => savePaper('published')}
-                    disabled={savingPaper || questions.length === 0}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {savingPaper ? 'Saving…' : 'Save & create paper'}
-                  </button>
-                  <button
-                    onClick={() => savePaper('draft')}
-                    disabled={savingPaper || questions.length === 0}
-                    className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card disabled:opacity-60"
-                  >
-                    {savingPaper ? 'Saving…' : 'Save as draft'}
-                  </button>
-                  <Link
-                    href="/admin/question-bank/papers"
-                    className="ml-auto inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card"
-                  >
-                    All saved papers
-                  </Link>
-                </div>
+                  <div className="mt-4 space-y-3 border-t border-brand-border pt-4">
+                    <label className="block text-sm font-semibold text-brand-textPrimary">
+                      Paper title
+                      <input
+                        className={`${inputCls} mt-1.5 font-normal`}
+                        placeholder="e.g. Class 10 · Physics · Unit Test 1"
+                        value={paperTitle}
+                        onChange={(e) => setPaperTitle(e.target.value)}
+                      />
+                    </label>
 
-                {paperError && <p className="mt-3 text-sm text-brand-accent">{paperError}</p>}
+                    <label className="inline-flex items-center gap-2 text-sm text-brand-textPrimary">
+                      <input
+                        type="checkbox"
+                        checked={includeAnswerKey}
+                        onChange={(e) => setIncludeAnswerKey(e.target.checked)}
+                        className="h-4 w-4 rounded border-brand-border text-brand-accent"
+                      />
+                      Include answer key in downloads
+                    </label>
 
-                {savedPaper && (
-                  <div className="mt-4 rounded-xl border border-brand-success/40 bg-brand-success/10 p-4">
-                    <p className="text-sm font-semibold text-brand-textPrimary">
-                      Saved “{savedPaper.title}” ({savedPaper.status}) · {savedPaper.totalQuestions} questions · {savedPaper.totalMarks} marks
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <a
-                        href={`/api/question-bank/papers/${savedPaper._id}/export?format=pdf&answerKey=${includeAnswerKey}`}
-                        className="rounded-lg bg-accent-gradient px-3 py-1.5 text-sm font-semibold text-white shadow-accent"
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPaperDetails((v) => !v)}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent"
                       >
-                        Download PDF
-                      </a>
-                      <a
-                        href={`/api/question-bank/papers/${savedPaper._id}/export?format=docx&answerKey=${includeAnswerKey}`}
-                        className="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-sm font-semibold text-brand-textPrimary shadow-card"
-                      >
-                        Download Word
-                      </a>
+                        {showPaperDetails ? '− Hide header details' : '+ Add institution, teacher & instructions (optional)'}
+                      </button>
+                      {showPaperDetails && (
+                        <div className="mt-3 space-y-3 rounded-xl border border-brand-border bg-brand-accentLight/10 p-3">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="text-xs font-medium text-brand-textSecondary">
+                              Institution name
+                              <input className={`${inputCls} mt-1`} value={paperInstitution} onChange={(e) => setPaperInstitution(e.target.value)} />
+                            </label>
+                            <label className="text-xs font-medium text-brand-textSecondary">
+                              Subject teacher name
+                              <input className={`${inputCls} mt-1`} value={paperTeacher} onChange={(e) => setPaperTeacher(e.target.value)} />
+                            </label>
+                          </div>
+                          <label className="block text-xs font-medium text-brand-textSecondary">
+                            Header instructions
+                            <input className={`${inputCls} mt-1`} value={paperInstructions} onChange={(e) => setPaperInstructions(e.target.value)} />
+                          </label>
+                          <label className="block text-xs font-medium text-brand-textSecondary">
+                            Footer text
+                            <input className={`${inputCls} mt-1`} value={paperFooter} onChange={(e) => setPaperFooter(e.target.value)} />
+                          </label>
+                        </div>
+                      )}
                     </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => savePaper('published')}
+                        disabled={savingPaper || paperQuestions.length === 0}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent disabled:opacity-60"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {savingPaper ? 'Saving…' : 'Save & create paper'}
+                      </button>
+                      <button
+                        onClick={() => savePaper('draft')}
+                        disabled={savingPaper || paperQuestions.length === 0}
+                        className="inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card disabled:opacity-60"
+                      >
+                        {savingPaper ? 'Saving…' : 'Save as draft'}
+                      </button>
+                      <Link
+                        href="/admin/question-bank/papers"
+                        className="ml-auto inline-flex items-center justify-center rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary shadow-card"
+                      >
+                        All saved papers
+                      </Link>
+                    </div>
+
+                    {paperError && <p className="text-sm text-brand-accent">{paperError}</p>}
+
+                    {savedPaper && (
+                      <div className="rounded-xl border border-brand-success/40 bg-brand-success/10 p-4">
+                        <p className="text-sm font-semibold text-brand-textPrimary">
+                          Saved “{savedPaper.title}” ({savedPaper.status}) · {savedPaper.totalQuestions} questions · {savedPaper.totalMarks} marks
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a
+                            href={`/api/question-bank/papers/${savedPaper._id}/export?format=pdf&answerKey=${includeAnswerKey}`}
+                            className="rounded-lg bg-accent-gradient px-3 py-1.5 text-sm font-semibold text-white shadow-accent"
+                          >
+                            Download PDF
+                          </a>
+                          <a
+                            href={`/api/question-bank/papers/${savedPaper._id}/export?format=docx&answerKey=${includeAnswerKey}`}
+                            className="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-sm font-semibold text-brand-textPrimary shadow-card"
+                          >
+                            Download Word
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ) : null}
           </div>
