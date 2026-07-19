@@ -13,6 +13,8 @@ const CANONICAL_HOST = 'www.dailytutors.in'
 const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true'
 
 const STUDENT_ROUTES = [
+  '/complete-profile',
+  '/complete-profile/',
   '/dashboard',
   '/dashboard/',
   '/learn',

@@ -1,18 +1,20 @@
 /* eslint-disable @next/next/no-img-element */
+import { redirect } from 'next/navigation'
 import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
 import Category from '@/models/Category'
 import SiteSetting from '@/models/SiteSetting'
 import { serialize } from '@/lib/utils'
+import { getCurrentUser } from '@/lib/session'
 import CourseCatalog from '@/components/CourseCatalog'
 import SiteNavbar from '@/components/SiteNavbar'
 import SiteFooter from '@/components/SiteFooter'
 import { SITE_DEFAULTS, mergeSiteSettings } from '@/lib/siteDefaults'
 import { Sparkles } from 'lucide-react'
 
-// Cache for 60s instead of querying MongoDB on every visit (much faster).
-// Newly published/updated courses appear within a minute.
-export const revalidate = 60
+// The catalog is behind login and needs the signed-in user, so it renders per
+// request rather than being statically cached.
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Explore Courses',
@@ -24,6 +26,14 @@ export const metadata = {
 }
 
 export default async function CoursesCatalog() {
+  // Students must sign in to browse the catalog, and first-time students must
+  // fill in their details before they can see the courses.
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect('/login?callbackUrl=/courses')
+  if (currentUser.role === 'student' && !currentUser.profileCompleted) {
+    redirect('/complete-profile?callbackUrl=/courses')
+  }
+
   let courses = []
   let categories = []
   let s = mergeSiteSettings(SITE_DEFAULTS)

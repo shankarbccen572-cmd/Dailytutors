@@ -23,6 +23,10 @@ const UserSchema = new mongoose.Schema(
     examTarget: { type: String, default: null },
     phone: { type: String, default: null },
     city: { type: String, default: null },
+    // Set once a student completes the first-time details form (name, mobile,
+    // email). Students with this false are sent to /complete-profile before
+    // they can browse courses.
+    profileCompleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 )
