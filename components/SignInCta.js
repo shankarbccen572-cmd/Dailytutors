@@ -1,7 +1,7 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import useAuthStatus from '@/components/useAuthStatus'
 
 function GoogleIcon() {
   return (
@@ -21,19 +21,24 @@ export default function SignInCta({
   withIcon = false,
 }) {
   // Hooks must run unconditionally and in the same order on every render, so
-  // useSession() is called before any early return.
-  const { status } = useSession()
+  // useAuthStatus() is called before any early return.
+  const { loading, authenticated } = useAuthStatus()
 
   // Dev mode: skip Google login, go straight into the app.
   if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
     return (
       <Link href="/dashboard" className={className}>
-        {label}
+        {authedLabel}
       </Link>
     )
   }
 
-  if (status === 'authenticated') {
+  // Don't flash "Sign in" before we know the real state.
+  if (loading) {
+    return <span className={className} aria-hidden style={{ visibility: 'hidden' }}>{label}</span>
+  }
+
+  if (authenticated) {
     return (
       <Link href="/dashboard" className={className}>
         {authedLabel}

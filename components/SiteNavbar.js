@@ -3,8 +3,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
-import SignInCta from '@/components/SignInCta'
+import { signOut } from 'next-auth/react'
+import { LogOut, Menu, X } from 'lucide-react'
+import useAuthStatus from '@/components/useAuthStatus'
 
 const DEFAULT_LINKS = [
   { label: 'Courses', href: '/courses' },
@@ -12,9 +13,30 @@ const DEFAULT_LINKS = [
   { label: 'Login', href: '/login' },
 ]
 
+// Clears both the phone-OTP (auth_token) and Google (next-auth) sessions, then
+// does a full reload so server components re-render logged out.
+async function handleLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST' })
+  } catch {}
+  try {
+    await signOut({ redirect: false })
+  } catch {}
+  window.location.href = '/'
+}
+
+// A link is a "login" link if it points at the login page — hidden once signed in.
+function isLoginLink(link) {
+  return link.href === '/login' || link.label?.toLowerCase() === 'login'
+}
+
 export default function SiteNavbar({ links = DEFAULT_LINKS }) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const { loading, authenticated } = useAuthStatus()
+
+  // Hide the "Login" nav link once the user is signed in.
+  const visibleLinks = authenticated ? links.filter((l) => !isLoginLink(l)) : links
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -47,7 +69,7 @@ export default function SiteNavbar({ links = DEFAULT_LINKS }) {
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
-            {links.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={`${link.label}-${link.href}`}
                 href={link.href}
@@ -56,11 +78,30 @@ export default function SiteNavbar({ links = DEFAULT_LINKS }) {
                 {link.label}
               </Link>
             ))}
-            <SignInCta
-              label="Sign in"
-              authedLabel="Dashboard"
-              className="ml-2 inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent transition-all hover:-translate-y-0.5 hover:shadow-accentLg"
-            />
+            {loading ? null : authenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="ml-2 inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent transition-all hover:-translate-y-0.5 hover:shadow-accentLg"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="ml-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm font-semibold text-brand-textPrimary transition hover:bg-brand-surface"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="ml-2 inline-flex items-center justify-center gap-2 rounded-xl bg-accent-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-accent transition-all hover:-translate-y-0.5 hover:shadow-accentLg"
+              >
+                Sign in
+              </Link>
+            )}
           </nav>
 
           {/* Mobile toggle */}
@@ -94,7 +135,7 @@ export default function SiteNavbar({ links = DEFAULT_LINKS }) {
           }`}
         >
           <div className="space-y-1.5">
-            {links.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={`${link.label}-${link.href}`}
                 href={link.href}
@@ -104,11 +145,35 @@ export default function SiteNavbar({ links = DEFAULT_LINKS }) {
                 {link.label}
               </Link>
             ))}
-            <SignInCta
-              label="Sign in"
-              authedLabel="Go to dashboard"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent-gradient px-4 py-3 text-sm font-semibold text-white shadow-accent"
-            />
+            {loading ? null : authenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent-gradient px-4 py-3 text-sm font-semibold text-white shadow-accent"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    handleLogout()
+                  }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-brand-border bg-white px-4 py-3 text-sm font-semibold text-brand-textPrimary transition hover:bg-brand-surface"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent-gradient px-4 py-3 text-sm font-semibold text-white shadow-accent"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </div>
