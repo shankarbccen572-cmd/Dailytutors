@@ -7,43 +7,36 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 const plans = [
   {
     name: '8th Standard',
-    price: '₹999',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support'],
     highlight: false,
   },
   {
     name: '9th Standard',
-    price: '₹1299',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support'],
     highlight: true,
   },
   {
     name: '10th Standard',
-    price: '₹1499',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support'],
     highlight: false,
   },
   {
     name: '11th Standard',
-    price: '₹2499',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support', 'Certificate'],
     highlight: false,
   },
   {
     name: '12th Standard',
-    price: '₹2999',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support', 'Certificate'],
     highlight: false,
   },
   {
     name: 'KCET Complete Course',
-    price: '₹4999',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support', 'Certificate'],
     highlight: false,
   },
   {
     name: 'NEET Complete Course',
-    price: '₹6999',
     features: ['HD Video Lectures', 'Notes', 'Practice Tests', 'Doubt Support', 'Certificate'],
     highlight: false,
   },
@@ -91,11 +84,7 @@ export default function PricingPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-end gap-2">
-                      <span className="font-heading text-4xl font-semibold text-brand-textPrimary">{plan.price}</span>
-                      <span className="pb-1 text-sm text-brand-textSecondary">one-time</span>
-                    </div>
-                    <ul className="mt-6 space-y-3">
+                    <ul className="mt-2 space-y-3">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-center gap-3 text-sm text-brand-textSecondary">
                           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-accentLight text-brand-accent">✓</span>
@@ -107,7 +96,7 @@ export default function PricingPage() {
                       href="/login"
                       className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-brand-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-accentDark"
                     >
-                      Buy Now
+                      Enroll Now
                     </Link>
                   </CardContent>
                 </Card>
