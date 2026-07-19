@@ -1,6 +1,8 @@
 import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
+import CookieConsentBanner from '@/components/CookieConsentBanner'
+import ScrollToTop from '@/components/ScrollToTop'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.dailytutors.in'
 
@@ -111,7 +113,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsentBanner />
+          <ScrollToTop />
+        </Providers>
       </body>
     </html>
   )
