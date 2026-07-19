@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import dbConnect from '@/lib/mongodb'
 import SiteSetting from '@/models/SiteSetting'
 import { getAdminSession } from '@/lib/admin'
@@ -88,6 +89,11 @@ export async function PUT(req) {
     new: true,
     upsert: true,
   }).lean()
+
+  // The homepage is statically cached — regenerate it (and the courses page)
+  // so navbar/footer/hero edits show up immediately on the public site.
+  revalidatePath('/')
+  revalidatePath('/courses')
 
   return NextResponse.json(mergeSiteSettings(settings))
 }

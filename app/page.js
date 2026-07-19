@@ -10,6 +10,11 @@ import dbConnect from '@/lib/mongodb'
 import SiteSetting from '@/models/SiteSetting'
 import { serialize } from '@/lib/utils'
 
+// The homepage is served from a static cache for speed/SEO. Admin edits trigger
+// an on-demand refresh (see /api/admin/site-settings), and this is a safety net
+// so changes still appear within a few minutes even if that is missed.
+export const revalidate = 300
+
 async function getSettings() {
   if (!process.env.MONGODB_URI) {
     return mergeSiteSettings(SITE_DEFAULTS)
