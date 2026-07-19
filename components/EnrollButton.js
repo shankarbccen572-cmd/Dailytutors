@@ -134,6 +134,15 @@ export default function EnrollButton({ courseId, enrolled, className = '', price
       }
 
       const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', function (response) {
+        const reason =
+          response?.error?.description ||
+          response?.error?.reason ||
+          'Your payment could not be completed.'
+        setBusy(false)
+        setStatusMessage(`Payment failed: ${reason} Please try again.`)
+        setStatusTone('error')
+      })
       rzp.open()
       setBusy(false)
     } catch (error) {
