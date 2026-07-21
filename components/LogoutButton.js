@@ -1,17 +1,20 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from './AuthProvider'
 
 export default function LogoutButton() {
   const router = useRouter()
   const pathname = usePathname()
   const redirectTo = pathname?.startsWith('/admin') ? '/admin/login' : '/login'
+  const { signOut } = useAuth()
 
   async function handleLogout() {
-    await fetch(`/api/logout?redirect=${encodeURIComponent(redirectTo)}`, {
-      method: 'POST',
-    })
-    router.push(redirectTo)
+    await signOut({ redirect: redirectTo })
+    // signOut will redirect, but ensure router state is updated in case it didn't
+    try {
+      router.push(redirectTo)
+    } catch (e) {}
   }
 
   return (

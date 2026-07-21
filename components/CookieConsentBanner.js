@@ -22,36 +22,41 @@ export default function CookieConsentBanner() {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-3 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-4xl -translate-x-1/2 animate-fade-up rounded-2xl border border-brand-border bg-white/95 p-4 shadow-cardHover backdrop-blur sm:bottom-4 sm:rounded-3xl xl:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="lg:max-w-2xl">
-          <p className="font-heading text-base font-semibold text-brand-textPrimary sm:text-lg">We use cookies to improve your experience</p>
-          <p className="mt-1.5 text-sm leading-6 text-brand-textSecondary sm:mt-2 sm:leading-7">
-            We use essential, analytics, and functional cookies to keep the platform secure and personalize your learning journey. You can manage your choice anytime.
-          </p>
-        </div>
-        <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Soft backdrop to draw focus to the centered card */}
+      <div className="absolute inset-0 animate-fade-in bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cookie consent"
+        className="relative w-full max-w-sm animate-scale-in rounded-2xl border border-brand-border bg-white p-5 text-center shadow-cardHover"
+      >
+        <p className="font-heading text-base font-semibold text-brand-textPrimary">We use cookies</p>
+        <p className="mx-auto mt-1.5 max-w-xs text-sm leading-6 text-brand-textSecondary">
+          We use cookies to keep the platform secure and personalize your learning. You can change your choice anytime.
+        </p>
+        <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <button
             type="button"
             onClick={() => handleChoice('reject')}
-            className="w-full rounded-full border border-brand-border px-4 py-2.5 text-sm font-semibold text-brand-textSecondary transition hover:border-brand-accent hover:text-brand-accent sm:w-auto sm:py-2"
+            className="w-full rounded-full border border-brand-border px-4 py-2 text-sm font-semibold text-brand-textSecondary transition hover:border-brand-accent hover:text-brand-accent sm:w-auto"
           >
             Reject
           </button>
-          <Link
-            href="/cookie-policy"
-            className="w-full rounded-full border border-brand-border px-4 py-2.5 text-center text-sm font-semibold text-brand-textSecondary transition hover:border-brand-accent hover:text-brand-accent sm:w-auto sm:py-2"
-          >
-            Learn More
-          </Link>
           <button
             type="button"
             onClick={() => handleChoice('accept')}
-            className="w-full rounded-full bg-brand-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-accentDark sm:w-auto sm:py-2"
+            className="w-full rounded-full bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-accentDark sm:w-auto"
           >
             Accept
           </button>
         </div>
+        <Link
+          href="/cookie-policy"
+          className="mt-3 inline-block text-xs font-medium text-brand-textSecondary underline underline-offset-2 transition hover:text-brand-accent"
+        >
+          Learn more
+        </Link>
       </div>
     </div>
   )
