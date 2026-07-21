@@ -27,9 +27,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        // Inter for body / UI text
-        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Poppins (600/700) for headings
+        // Poppins for body / UI text and headings
+        sans: ['var(--font-poppins)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         heading: ['var(--font-poppins)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {

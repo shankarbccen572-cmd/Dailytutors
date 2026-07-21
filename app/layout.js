@@ -1,4 +1,4 @@
-import { Inter, Poppins } from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
 import CookieConsentBanner from '@/components/CookieConsentBanner'
@@ -6,17 +6,10 @@ import ScrollToTop from '@/components/ScrollToTop'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.dailytutors.in'
 
-// Body / UI text
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-// Headings (600 / 700)
+// Poppins for both body / UI text (400 / 500) and headings (600 / 700)
 const poppins = Poppins({
   subsets: ['latin'],
-  weight: ['600', '700'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-poppins',
   display: 'swap',
 })
@@ -111,7 +104,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+    <html lang="en" className={poppins.variable}>
       <body>
         <Providers>
           {children}
