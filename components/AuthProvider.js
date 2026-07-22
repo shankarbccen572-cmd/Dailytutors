@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
 
   const fetchMe = useCallback(async () => {
     try {
-      const res = await fetch('/api/me')
+      const res = await fetch('/api/me', { cache: 'no-store' })
       if (!res.ok) {
         setState({ loading: false, authenticated: false, user: null })
         return

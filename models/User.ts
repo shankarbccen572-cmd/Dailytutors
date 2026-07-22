@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema(
     // For co-admins: which admin created them
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     examTarget: { type: String, default: null },
-    phone: { type: String, default: null },
+    phone: { type: String, default: null, unique: true, sparse: true, index: true },
     city: { type: String, default: null },
     // Set once a student completes the first-time details form (name, mobile,
     // email). Students with this false are sent to /complete-profile before

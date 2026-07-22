@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -40,11 +40,7 @@ export default function EditCoAdminPage() {
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    loadCoAdmin()
-  }, [id])
-
-  async function loadCoAdmin() {
+  const loadCoAdmin = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/co-admins`)
       const data = await res.json()
@@ -64,7 +60,11 @@ export default function EditCoAdminPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadCoAdmin()
+  }, [loadCoAdmin])
 
   function togglePermission(id) {
     setForm((f) => ({

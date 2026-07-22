@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
@@ -219,9 +220,12 @@ export default function ImportantQuestionsRunner({ courseId, course, chapters })
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Link href={`/learn/${courseId}`} className="shrink-0">
-              <img
+              <Image
                 src="/logo-full.png"
                 alt="Daily Tutors"
+                width={200}
+                height={44}
+                sizes="(max-width: 640px) 160px, 200px"
                 style={{ width: '200px', height: 'auto' }}
               />
             </Link>

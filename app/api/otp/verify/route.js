@@ -45,18 +45,20 @@ export async function POST(req) {
     await dbConnect()
     const safeEmail = `${phone}@phone.dailytutors.local`
 
-    let user = await User.findOne({ phone })
-    if (!user) {
-      user = await User.create({
-        phone,
-        email: safeEmail,
-        name: phone,
-        role: 'student',
-      })
-    } else if (!user.email) {
-      user.email = safeEmail
-      await user.save()
-    }
+    // Use findOneAndUpdate with upsert to ensure atomicity: if user doesn't exist
+    // by phone, create them; return the actual persisted user document.
+    let user = await User.findOneAndUpdate(
+      { phone },
+      {
+        $set: { phone },
+        $setOnInsert: {
+          email: safeEmail,
+          name: phone,
+          role: 'student',
+        },
+      },
+      { upsert: true, new: true }
+    )
 
     // Create the student JWT and set it as an HttpOnly cookie.
     const tokenPayload = { userId: user._id.toString(), email: user.email, role: user.role }
