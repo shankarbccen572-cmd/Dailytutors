@@ -52,7 +52,7 @@ const sections = [
   },
   {
     title: 'Contact',
-    body: 'If you have any questions regarding these Terms and Conditions, please contact us at hello@dailytutors.in.',
+    body: 'If you have any questions regarding these Terms and Conditions, please contact us at tutorsdaily@gmail.com.',
   },
 ]
 

@@ -29,7 +29,7 @@ export default function ContactPage() {
                 <CardDescription>For account, payment, or course access questions.</CardDescription>
               </CardHeader>
               <CardContent>
-                <SectionText>Reach us at <Link href="mailto:hello@dailytutors.in" className="font-semibold text-brand-accent">hello@dailytutors.in</Link>.</SectionText>
+                <SectionText>Reach us at <Link href="mailto:tutorsdaily@gmail.com" className="font-semibold text-brand-accent">tutorsdaily@gmail.com</Link>.</SectionText>
               </CardContent>
             </Card>
 
