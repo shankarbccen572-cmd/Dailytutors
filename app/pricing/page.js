@@ -108,7 +108,7 @@ export default function PricingPage() {
               <SectionText className="mt-3 max-w-2xl">
                 Need classroom access, institutional pricing, or a custom learning package? Our team can tailor a plan for schools, coaching centers, and larger groups.
               </SectionText>
-              <Link href="mailto:tutorsdaily@gmail.com" className="mt-6 inline-flex items-center rounded-full bg-brand-secondary px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondaryDark">
+              <Link href="mailto:support@dailytutors.in" className="mt-6 inline-flex items-center rounded-full bg-brand-secondary px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondaryDark">
                 Get in touch
               </Link>
             </div>

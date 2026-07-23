@@ -53,7 +53,7 @@ const sections = [
   },
   {
     title: 'Contact Information',
-    body: 'If you have questions about this Privacy Policy or your personal information, please reach out to us at tutorsdaily@gmail.com.',
+    body: 'If you have questions about this Privacy Policy or your personal information, please reach out to us at support@dailytutors.in.',
   },
 ]
 
@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
         <section className="rounded-2xl border border-brand-border bg-brand-surface p-6">
           <SectionTitle>Questions or concerns?</SectionTitle>
           <SectionText className="mt-3">
-            Contact our support team at <Link href="mailto:tutorsdaily@gmail.com" className="font-semibold text-brand-accent">tutorsdaily@gmail.com</Link>.
+            Contact our support team at <Link href="mailto:support@dailytutors.in" className="font-semibold text-brand-accent">support@dailytutors.in</Link>.
           </SectionText>
         </section>
       </div>

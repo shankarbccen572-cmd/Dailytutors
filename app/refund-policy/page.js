@@ -36,7 +36,7 @@ const sections = [
   },
   {
     title: 'Contact Support',
-    body: 'Please email tutorsdaily@gmail.com with your order details, payment reference, and a description of the issue if you need help with a refund or cancellation request.',
+    body: 'Please email support@dailytutors.in with your order details, payment reference, and a description of the issue if you need help with a refund or cancellation request.',
   },
 ]
 
